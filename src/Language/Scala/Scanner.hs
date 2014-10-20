@@ -2,14 +2,15 @@
 {-# LINE 1 "src/Language/Scala/Scanner.x" #-}
 
 
-{-
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports     #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches     #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds       #-}
 
-Alex scanner for .scala files, with minor generalisations.
-The output is a sequence of tokens and error messages defined
-in the "Tokens" module, annotated with source code context
-defined in "Contexts".
-
--}
+-- Alex scanner for .scala files, with minor generalisations.
+-- The output is a sequence of tokens and error messages defined
+-- in the "Tokens" module, annotated with source code context
+-- defined in "Contexts".
 
 module Language.Scala.Scanner
     ( Tokens
@@ -62,7 +63,7 @@ alex_deflt :: AlexAddr
 alex_deflt = AlexA# "\xff\xff\xff\xff\xff\xff\xff\xff\x19\x00\xff\xff\x19\x00\xff\xff\xff\xff\xff\xff\xff\xff\x14\x00\x14\x00\x0c\x00\x0c\x00\xff\xff\xff\xff\x19\x00\x19\x00\x19\x00\x19\x00\x1b\x00\x1a\x00\x1a\x00\x1b\x00\x19\x00\x28\x00\x27\x00\x27\x00\x28\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x30\x00\x2d\x00\x30\x00\x2d\x00\x30\x00\x2d\x00\xff\xff\xff\xff\x19\x00\x2d\x00\x2d\x00\x30\x00\x30\x00\x30\x00\x30\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x19\x00\xff\xff\x19\x00\xff\xff\xff\xff\xff\xff\x19\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"#
 
 alex_accept = listArray (0::Int,271) [AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAcc (alex_action_1),AlexAcc (alex_action_2),AlexAcc (alex_action_3),AlexAcc (alex_action_4),AlexAcc (alex_action_5),AlexAcc (alex_action_6),AlexAcc (alex_action_7),AlexAcc (alex_action_8),AlexAcc (alex_action_9),AlexAcc (alex_action_10),AlexAcc (alex_action_11),AlexAcc (alex_action_12),AlexAcc (alex_action_13),AlexAcc (alex_action_14),AlexAcc (alex_action_15),AlexAcc (alex_action_16),AlexAcc (alex_action_17),AlexAcc (alex_action_18),AlexAcc (alex_action_19),AlexAcc (alex_action_20),AlexAcc (alex_action_21),AlexAcc (alex_action_22),AlexAcc (alex_action_23),AlexAcc (alex_action_24),AlexAcc (alex_action_25),AlexAcc (alex_action_26),AlexAcc (alex_action_27),AlexAcc (alex_action_28),AlexAcc (alex_action_29),AlexAcc (alex_action_30),AlexAcc (alex_action_31),AlexAcc (alex_action_32),AlexAcc (alex_action_33),AlexAcc (alex_action_34),AlexAcc (alex_action_35),AlexAcc (alex_action_36),AlexAcc (alex_action_37),AlexAcc (alex_action_38),AlexAcc (alex_action_39),AlexAcc (alex_action_40),AlexAcc (alex_action_41),AlexAcc (alex_action_42),AlexAcc (alex_action_43),AlexAcc (alex_action_44),AlexAcc (alex_action_45),AlexAcc (alex_action_46),AlexAcc (alex_action_47),AlexAcc (alex_action_48),AlexAcc (alex_action_49),AlexAcc (alex_action_50),AlexAcc (alex_action_51),AlexAcc (alex_action_52),AlexAcc (alex_action_53),AlexAcc (alex_action_54),AlexAcc (alex_action_55),AlexAcc (alex_action_56),AlexAcc (alex_action_57),AlexAcc (alex_action_58),AlexAcc (alex_action_59),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_60),AlexAcc (alex_action_61),AlexAcc (alex_action_61),AlexAcc (alex_action_61),AlexAcc (alex_action_61),AlexAcc (alex_action_61),AlexAcc (alex_action_61),AlexAcc (alex_action_61),AlexAcc (alex_action_61),AlexAcc (alex_action_61),AlexAcc (alex_action_62),AlexAcc (alex_action_62),AlexAcc (alex_action_62),AlexAcc (alex_action_63),AlexAcc (alex_action_63),AlexAcc (alex_action_64),AlexAcc (alex_action_64),AlexAcc (alex_action_64),AlexAcc (alex_action_65),AlexAcc (alex_action_66),AlexAcc (alex_action_67),AlexAcc (alex_action_68),AlexAcc (alex_action_69),AlexAcc (alex_action_70),AlexAcc (alex_action_71),AlexAcc (alex_action_72),AlexAcc (alex_action_73),AlexAcc (alex_action_74),AlexAcc (alex_action_75),AlexAcc (alex_action_76),AlexAcc (alex_action_77),AlexAcc (alex_action_78),AlexAcc (alex_action_79),AlexAcc (alex_action_79),AlexAcc (alex_action_79),AlexAcc (alex_action_80),AlexAcc (alex_action_81),AlexAcc (alex_action_82),AlexAcc (alex_action_83),AlexAcc (alex_action_84)]
-{-# LINE 173 "src/Language/Scala/Scanner.x" #-}
+{-# LINE 174 "src/Language/Scala/Scanner.x" #-}
 
 
 -- Alex input is simply a positioned byte string:
@@ -81,34 +82,29 @@ alexGetByte (bs :@ p) = do
     0x09 -> return (x, bs' :@ nextTab p)
     _    -> return (x, bs' :@ nextColumn p)
 
--- We don't use line contexts:
-alexInputPrevChar = const UTF8.replacement_char
-
--- Actual entry point into the scanner: parses a positioned bytestring into a list tokens:
+-- | Parses a positioned bytestring into a list tokens.
 scanTokens :: Positioned ByteString -> Tokens
 scanTokens inp =
   case alexScan inp 0 of
     AlexToken inp' len act -> act undefined 0 inp len inp'
-    AlexSkip inp' len      -> scanTokens inp'
+    AlexSkip inp' _        -> scanTokens inp'
     AlexError inp'         -> fmap unexpected inp ::! scanTokens inp'
-    AlexEOF                -> EndOfTokens $ position inp
+    AlexEOF                -> EndTokens $ position inp
 
--- Produce a human-readable error message:
+-- | Produce a human-readable error message.
 unexpected :: ByteString -> String
 unexpected bs = "Unexpected " ++ inputContext bs
 
--- Establish human-readable input context:
+-- | Establish human-readable input context.
 inputContext :: ByteString -> String
 inputContext bs = fromMaybe "end of file" $ do
   (x, _) <- UTF8.uncons bs
   return ("character " ++ show x)
 
--- Produce a single token:
+-- | Produce a single token.
 produceToken :: (a -> Token) -> (Int -> ByteString -> a) -> s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 produceToken t p _ _ inp len inp' = (t $ p len $ value inp) :@@ between inp inp' ::> scanTokens inp'
 
--- Combinator that allows us to annotate a token with its actual value using a
--- standard ReadS function:
 parseOnly :: ReadS a -> Int -> ByteString -> a
 parseOnly r len str = v
   where
@@ -119,7 +115,7 @@ parseWith r len str = v
   where
     [v] = r $ UTF8.toString $ ByteString.take len str
 
--- Produce an int or a long token from a decimal literal:
+-- | Produce an int or a long token from a decimal literal.
 readDecimal :: Int -> ByteString -> Token
 readDecimal len str =
   case parseWith readDec len str of
@@ -127,7 +123,7 @@ readDecimal len str =
     (v, "l") -> Tok_Long v
     (v, "L") -> Tok_Long v
 
--- Produce an int or a long token from a hexadecimal literal:
+-- | Produce an int or a long token from a hexadecimal literal.
 readHexadecimal :: Int -> ByteString -> Token
 readHexadecimal len str =
   case parseWith (readHex . drop 2) len str of
@@ -135,7 +131,7 @@ readHexadecimal len str =
     (v, "l") -> Tok_Long v
     (v, "L") -> Tok_Long v
 
--- Produce a double or a float token from a rational literal:
+-- | Produce a double or a float token from a rational literal.
 readFloatingPoint :: Int -> ByteString -> Token
 readFloatingPoint len str =
   case parseWith readRational len str of
@@ -145,9 +141,9 @@ readFloatingPoint len str =
     ((m, e), "f") -> Tok_Float  m e
     ((m, e), "F") -> Tok_Float  m e
 
--- Reader for rational token values:
+-- | Reader for rational token values.
 readRational :: ReadS (Integer, Integer)
-readRational s = readIntegerPart 0 s
+readRational str = readIntegerPart 0 str
   where
     readIntegerPart m (c:xs)
       | ('0' <= c && c <= '9') = readIntegerPart (m * 10 + digitValue c) xs
@@ -170,12 +166,12 @@ readRational s = readIntegerPart 0 s
 
     digitValue c = fromIntegral (ord c - ord '0')
 
--- Symbols are trivial, since they have no features other than their position
--- position:
+-- | Symbols are trivial, since they have no features other than their position
+-- position.
 produceSymbol :: Token -> s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-produceSymbol t _ _ inp len inp' = t :@@ between inp inp' ::> scanTokens inp'
+produceSymbol t _ _ inp _ inp' = t :@@ between inp inp' ::> scanTokens inp'
 
--- String literals are a little bit tricky, since, in the interest of sensible
+-- | String literals are a little bit tricky, since, in the interest of sensible
 -- error messages, the scanner needs to process escape sequences into the
 -- string's ultimate form.  While the input is assumed to be UTF-8, the
 -- resulting string is always binary, and all non-ASCII characters must be
@@ -183,24 +179,24 @@ produceSymbol t _ _ inp len inp' = t :@@ between inp inp' ::> scanTokens inp'
 -- characters will, in the current version, result in errors since we don't
 -- want to presume any specific encoding on the user's part.
 beginString :: Int -> s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-beginString sc _ _ inp len inp' = scanString ([] <$ inp) sc inp'
+beginString sc _ _ inp _ inp' = scanString ([] <$ inp) sc inp'
 
 scanString :: Positioned [ByteString] -> Int -> Positioned ByteString -> Tokens
 scanString rs sc inp =
   case alexScan inp sc of
     AlexToken inp' len act -> act rs sc inp len inp'
-    AlexSkip inp' len      -> scanString rs sc inp'
+    AlexSkip inp' _        -> scanString rs sc inp'
     AlexError inp'         -> fmap unexpected inp ::! scanString rs sc inp'
     AlexEOF                -> reportIncompleteStringLiteral rs sc inp 0 inp
 
 endString :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endString rs sc inp len inp' = (Tok_String $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endString rs _ _ _ inp' = (Tok_String $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 endChar :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endChar rs sc inp len inp' = (Tok_Char $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endChar rs _ _ _ inp' = (Tok_Char $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 endStringId :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endStringId rs sc inp len inp' = (Tok_StringId $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endStringId rs _ _ _ inp' = (Tok_StringId $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 produceStringPart :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 produceStringPart rs sc inp len inp' = scanString (fmap (r :) rs) sc inp'
@@ -208,7 +204,7 @@ produceStringPart rs sc inp len inp' = scanString (fmap (r :) rs) sc inp'
     r = ByteString.take len (value inp)
 
 produceSimpleEscape :: Char -> Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-produceSimpleEscape c rs sc inp len inp' = scanString (fmap (r :) rs) sc inp'
+produceSimpleEscape c rs sc _ _ inp' = scanString (fmap (r :) rs) sc inp'
   where
     r = ByteString.singleton $ fromIntegral $ ord c
 
@@ -221,10 +217,10 @@ produceOctalEscape rs sc inp len inp'
     r = ByteString.singleton $ fromIntegral x
 
 reportIllegalEscape :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-reportIllegalEscape rs sc inp len inp' = ("Illegal escape sequence" <$ inp) ::! scanString rs sc inp'
+reportIllegalEscape rs sc inp _ inp' = ("Illegal escape sequence" <$ inp) ::! scanString rs sc inp'
 
 reportIncompleteStringLiteral :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-reportIncompleteStringLiteral rs sc inp len inp' = ("Incomplete string literal" <$ inp) ::! scanTokens inp'
+reportIncompleteStringLiteral _ _ inp _ inp' = ("Incomplete string literal" <$ inp) ::! scanTokens inp'
 
 
 

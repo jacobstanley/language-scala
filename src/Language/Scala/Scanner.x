@@ -1,13 +1,14 @@
 {
 
-{-
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports     #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches     #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds       #-}
 
-Alex scanner for .scala files, with minor generalisations.
-The output is a sequence of tokens and error messages defined
-in the "Tokens" module, annotated with source code context
-defined in "Contexts".
-
--}
+-- Alex scanner for .scala files, with minor generalisations.
+-- The output is a sequence of tokens and error messages defined
+-- in the "Tokens" module, annotated with source code context
+-- defined in "Contexts".
 
 module Language.Scala.Scanner
     ( Tokens
@@ -188,15 +189,12 @@ alexGetByte (bs :@ p) = do
     0x09 -> return (x, bs' :@ nextTab p)
     _    -> return (x, bs' :@ nextColumn p)
 
--- We don't use line contexts:
-alexInputPrevChar = const UTF8.replacement_char
-
 -- | Parses a positioned bytestring into a list tokens.
 scanTokens :: Positioned ByteString -> Tokens
 scanTokens inp =
   case alexScan inp 0 of
     AlexToken inp' len act -> act undefined 0 inp len inp'
-    AlexSkip inp' len      -> scanTokens inp'
+    AlexSkip inp' _        -> scanTokens inp'
     AlexError inp'         -> fmap unexpected inp ::! scanTokens inp'
     AlexEOF                -> EndTokens $ position inp
 
@@ -252,7 +250,7 @@ readFloatingPoint len str =
 
 -- | Reader for rational token values.
 readRational :: ReadS (Integer, Integer)
-readRational s = readIntegerPart 0 s
+readRational str = readIntegerPart 0 str
   where
     readIntegerPart m (c:xs)
       | ('0' <= c && c <= '9') = readIntegerPart (m * 10 + digitValue c) xs
@@ -278,7 +276,7 @@ readRational s = readIntegerPart 0 s
 -- | Symbols are trivial, since they have no features other than their position
 -- position.
 produceSymbol :: Token -> s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-produceSymbol t _ _ inp len inp' = t :@@ between inp inp' ::> scanTokens inp'
+produceSymbol t _ _ inp _ inp' = t :@@ between inp inp' ::> scanTokens inp'
 
 -- | String literals are a little bit tricky, since, in the interest of sensible
 -- error messages, the scanner needs to process escape sequences into the
@@ -288,24 +286,24 @@ produceSymbol t _ _ inp len inp' = t :@@ between inp inp' ::> scanTokens inp'
 -- characters will, in the current version, result in errors since we don't
 -- want to presume any specific encoding on the user's part.
 beginString :: Int -> s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-beginString sc _ _ inp len inp' = scanString ([] <$ inp) sc inp'
+beginString sc _ _ inp _ inp' = scanString ([] <$ inp) sc inp'
 
 scanString :: Positioned [ByteString] -> Int -> Positioned ByteString -> Tokens
 scanString rs sc inp =
   case alexScan inp sc of
     AlexToken inp' len act -> act rs sc inp len inp'
-    AlexSkip inp' len      -> scanString rs sc inp'
+    AlexSkip inp' _        -> scanString rs sc inp'
     AlexError inp'         -> fmap unexpected inp ::! scanString rs sc inp'
     AlexEOF                -> reportIncompleteStringLiteral rs sc inp 0 inp
 
 endString :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endString rs sc inp len inp' = (Tok_String $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endString rs _ _ _ inp' = (Tok_String $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 endChar :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endChar rs sc inp len inp' = (Tok_Char $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endChar rs _ _ _ inp' = (Tok_Char $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 endStringId :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endStringId rs sc inp len inp' = (Tok_StringId $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endStringId rs _ _ _ inp' = (Tok_StringId $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 produceStringPart :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 produceStringPart rs sc inp len inp' = scanString (fmap (r :) rs) sc inp'
@@ -313,7 +311,7 @@ produceStringPart rs sc inp len inp' = scanString (fmap (r :) rs) sc inp'
     r = ByteString.take len (value inp)
 
 produceSimpleEscape :: Char -> Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-produceSimpleEscape c rs sc inp len inp' = scanString (fmap (r :) rs) sc inp'
+produceSimpleEscape c rs sc _ _ inp' = scanString (fmap (r :) rs) sc inp'
   where
     r = ByteString.singleton $ fromIntegral $ ord c
 
@@ -326,9 +324,9 @@ produceOctalEscape rs sc inp len inp'
     r = ByteString.singleton $ fromIntegral x
 
 reportIllegalEscape :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-reportIllegalEscape rs sc inp len inp' = ("Illegal escape sequence" <$ inp) ::! scanString rs sc inp'
+reportIllegalEscape rs sc inp _ inp' = ("Illegal escape sequence" <$ inp) ::! scanString rs sc inp'
 
 reportIncompleteStringLiteral :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-reportIncompleteStringLiteral rs sc inp len inp' = ("Incomplete string literal" <$ inp) ::! scanTokens inp'
+reportIncompleteStringLiteral _ _ inp _ inp' = ("Incomplete string literal" <$ inp) ::! scanTokens inp'
 
 }
