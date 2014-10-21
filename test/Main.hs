@@ -38,6 +38,7 @@ printColor :: Token -> IO ()
 printColor tok = do
     setSGR . sgr . highlight $ tok
     B.putStr (lexeme tok)
+    setSGR []
   where
     lexeme (Tok_NewLine One)  = "<nl>\n"
     lexeme (Tok_NewLine Many) = "<nl> <nl>\n"
@@ -76,6 +77,7 @@ highlight tok = case tok of
   Tok_VarId    _ -> VarId
   Tok_PlainId  _ -> PlainId
   Tok_StringId _ -> StringId
+  Tok_Symbol   _ -> PlainId
   Tok_Int      _ -> Number
   Tok_Long     _ -> Number
   Tok_Float  _ _ -> Number

@@ -31,7 +31,7 @@ import           Language.Scala.Util
 
 }
 
-$printable                    = [ \ - \~ ]
+$print                        = [ \ - \~ ]
 $space                        = [ \  \t \r ]
 
 $upper                        = [ A-Z \$ _ ]
@@ -140,37 +140,51 @@ tokens :-
 <0> @varid                    { produceToken Tok_VarId   $ B.take }
 <0> @plainid                  { produceToken Tok_PlainId $ B.take }
 
-<0> @symbol_literal           { produceToken Tok_Symbol $ B.drop 1 . B.take }
+<0> @symbol_literal           { produceToken id $ readSymbol        }
 
 <0> @decimal_literal          { produceToken id $ readDecimal       }
 <0> @hexadecimal_literal      { produceToken id $ readHexadecimal   }
 <0> @rational_literal         { produceToken id $ readFloatingPoint }
 
+--
+-- Character literals
+--
+
+<0> \' [ $print # [\'\\] ] \' { produceChar            }
+<0> \' \\ b                \' { produceCharEscape '\b' }
+<0> \' \\ t                \' { produceCharEscape '\t' }
+<0> \' \\ n                \' { produceCharEscape '\n' }
+<0> \' \\ f                \' { produceCharEscape '\f' }
+<0> \' \\ r                \' { produceCharEscape '\r' }
+<0> \' \\ \"               \' { produceCharEscape '\"' }
+<0> \' \\ \'               \' { produceCharEscape '\'' }
+<0> \' \\ \\               \' { produceCharEscape '\\' }
+<0> \' \\ $octit{1,3}      \' { produceCharOctalEscape }
+
+--
+-- String/identifier literals
+--
+
 <0> \"                        { beginString sq }
-<0> \'                        { beginString sa }
 <0> \`                        { beginString sb }
 
--- Should everything be legal inside strings except the quote itself?
+<sq> [ $print # [\"\\] ]+     { produceStringPart }
+<sb> [ $print # [\`\\] ]+     { produceStringPart }
 
-<sq> [ $printable # [\"\\] ]+ { produceStringPart }
-<sa> [ $printable # [\'\\] ]+ { produceStringPart }
-<sb> [ $printable # [\`\\] ]+ { produceStringPart }
+<sq,sb> \\ b                  { produceSimpleEscape '\b' }
+<sq,sb> \\ t                  { produceSimpleEscape '\t' }
+<sq,sb> \\ n                  { produceSimpleEscape '\n' }
+<sq,sb> \\ f                  { produceSimpleEscape '\f' }
+<sq,sb> \\ r                  { produceSimpleEscape '\r' }
+<sq,sb> \\ \"                 { produceSimpleEscape '\"' }
+<sq,sb> \\ \'                 { produceSimpleEscape '\'' }
+<sq,sb> \\ \\                 { produceSimpleEscape '\\' }
+<sq,sb> \\ $octit{1,3}        { produceOctalEscape       }
 
-<sq,sa,sb> \\ b               { produceSimpleEscape '\b' }
-<sq,sa,sb> \\ t               { produceSimpleEscape '\t' }
-<sq,sa,sb> \\ n               { produceSimpleEscape '\n' }
-<sq,sa,sb> \\ f               { produceSimpleEscape '\f' }
-<sq,sa,sb> \\ r               { produceSimpleEscape '\r' }
-<sq,sa,sb> \\ \"              { produceSimpleEscape '\"' }
-<sq,sa,sb> \\ \'              { produceSimpleEscape '\'' }
-<sq,sa,sb> \\ \\              { produceSimpleEscape '\\' }
-<sq,sa,sb> \\ $octit{1,3}     { produceOctalEscape       }
-
-<sq,sa,sb> \\                 { reportIllegalEscape           }
-<sq,sa,sb> @newline           { reportIncompleteStringLiteral }
+<sq,sb> \\                    { reportIllegalEscape           }
+<sq,sb> @newline              { reportIncompleteStringLiteral }
 
 <sq> \"                       { endString     }
-<sa> \'                       { endChar       }
 <sb> \`                       { endStringId   }
 
 {
@@ -223,6 +237,10 @@ parseWith :: ReadS a -> Int -> ByteString -> (a, String)
 parseWith r len str = v
   where
     [v] = r $ UTF8.toString $ B.take len str
+
+-- | Produce a symbol from a quote prefixed literal.
+readSymbol :: Int -> ByteString -> Token
+readSymbol len = Tok_Symbol . B.tail . B.take len
 
 -- | Produce an int or a long token from a decimal literal.
 readDecimal :: Int -> ByteString -> Token
@@ -280,6 +298,27 @@ readRational str = readIntegerPart 0 str
 produceSymbol :: Token -> s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 produceSymbol t _ _ inp _ inp' = t :@@ between inp inp' ::> scanTokens inp'
 
+-- | Extract a single non-escaped printable character.
+produceChar :: s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
+produceChar _ _ inp len inp'
+    | len == 3  = (Tok_Char $ chr $ fromIntegral x) :@@ between inp inp' ::> scanTokens inp'
+    | otherwise = ("Illegal character literal; must be a single character" <$ inp) ::! scanTokens inp'
+  where
+    (x, _) = fromMaybe (error "end of file") $ B.uncons $ B.tail $ value inp
+
+-- | Extract a simply escaped character.
+produceCharEscape :: Char -> s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
+produceCharEscape c _ _ inp _ inp' = Tok_Char c :@@ between inp inp' ::> scanTokens inp'
+
+-- | Extract an octal escaped character.
+produceCharOctalEscape :: s -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
+produceCharOctalEscape _ _ inp len inp'
+    | x <= 0xFF = Tok_Char c :@@ between inp inp' ::> scanTokens inp'
+    | otherwise = ("Illegal octal escape sequence; must have a value less than 256" <$ inp) ::!  scanTokens inp'
+  where
+    x = parseOnly (readOct . init . tail . tail) len (value inp) :: Int
+    c = chr $ fromIntegral x
+
 -- | String literals are a little bit tricky, since, in the interest of sensible
 -- error messages, the scanner needs to process escape sequences into the
 -- string's ultimate form.  While the input is assumed to be UTF-8, the
@@ -300,9 +339,6 @@ scanString rs sc inp =
 
 endString :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 endString rs _ _ _ inp' = (Tok_String $ B.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
-
-endChar :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endChar rs _ _ _ inp' = (Tok_Char $ B.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 endStringId :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 endStringId rs _ _ _ inp' = (Tok_StringId $ B.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'

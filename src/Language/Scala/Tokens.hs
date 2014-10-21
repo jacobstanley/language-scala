@@ -21,6 +21,7 @@ module Language.Scala.Tokens
 import           Data.Bits ((.&.), shiftR)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C
 import           Data.Char (ord)
 import           Data.List (intersperse)
 import           Data.Monoid ((<>))
@@ -69,7 +70,7 @@ data Token =
 -- and escape sequences replaced by their constituent
 -- characters:
 
-    | Tok_Char     !ByteString
+    | Tok_Char     !Char
     | Tok_String   !ByteString
 
 -- Symbol literals are shorthand for scala.Symbol("x")
@@ -149,7 +150,7 @@ tokenLexeme t = case t of
   Tok_Long     x   -> fromString (shows x "L")
   Tok_Float  m e   -> fromString (uncurry showScientific (normalisedScientific m e) "F")
   Tok_Double m e   -> fromString (uncurry showScientific (normalisedScientific m e) "")
-  Tok_Char     x   -> quotedString '\'' x
+  Tok_Char     x   -> quotedString '\'' (C.pack [x])
   Tok_String   x   -> quotedString '"' x
   Tok_Abstract     -> fromString "abstract"
   Tok_Case         -> fromString "case"
@@ -223,12 +224,12 @@ normalisedScientific m e = (m, e)
 -- | Format a rational using standard scientific notation.
 showScientific :: Integer -> Integer -> ShowS
 showScientific m e
-    | m == 0    = showString "0.0E0"
+    | m == 0    = showString "0.0e0"
     | m < 0     = showChar '-' . showScientific (negate m) e
     | otherwise = showChar is
                 . showChar '.'
                 . showString (if null fs then "0" else fs)
-                . showChar 'E'
+                . showChar 'e'
                 . shows (e + fromIntegral (length fs))
   where
     (is:fs) = show m
@@ -250,7 +251,7 @@ quotedString qc x = B.pack $ (quoteChar qc :) $ quoteBytes $ B.unpack x
     quoteBytes (b:bs)
       | 32 <= b && b <= 126 = b : quoteBytes bs
       | otherwise           = quoteChar '\\' : quoteOctal b bs
-    quoteBytes [] = [quoteChar '\"']
+    quoteBytes [] = [quoteChar qc]
 
     quoteOctal b bs
       | b > 0o77 || startsWithOctit bs = quoteOctit (b `shiftR` 6)
