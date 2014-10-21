@@ -2,7 +2,7 @@ module Language.Scala.Util
     ( HasValue (..)
     , List
 
-    , Name
+    , Ident
     , Error
     , Index
     , IndexPath
@@ -39,7 +39,7 @@ class Functor f => HasValue f where
 type List a = [a]
 
 -- | Names and comments are represented by bytestrings.
-type Name = ByteString
+type Ident = ByteString
 
 -- | Error messages are represented by strings.
 type Error = String

@@ -23,6 +23,7 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import           Data.Char (ord)
 import           Data.List (intersperse)
+import           Data.Monoid ((<>))
 import           Data.String (fromString)
 import           Data.Word (Word8)
 
@@ -49,9 +50,9 @@ data Token =
 
 -- Identifiers:
 
-    | Tok_VarId    !Name
-    | Tok_PlainId  !Name
-    | Tok_StringId !Name
+    | Tok_VarId    !Ident
+    | Tok_PlainId  !Ident
+    | Tok_StringId !Ident
 
 -- Integers:
 
@@ -70,6 +71,10 @@ data Token =
 
     | Tok_Char     !ByteString
     | Tok_String   !ByteString
+
+-- Symbol literals are shorthand for scala.Symbol("x")
+
+    | Tok_Symbol   !ByteString
 
 -- Keywords:
 
@@ -139,6 +144,7 @@ tokenLexeme t = case t of
   Tok_VarId    x   -> x
   Tok_PlainId  x   -> x
   Tok_StringId x   -> quotedString '`' x
+  Tok_Symbol   x   -> fromString "\'" <> x
   Tok_Int      x   -> fromString (shows x "")
   Tok_Long     x   -> fromString (shows x "L")
   Tok_Float  m e   -> fromString (uncurry showScientific (normalisedScientific m e) "F")
@@ -270,14 +276,6 @@ quotedString qc x = B.pack $ (quoteChar qc :) $ quoteBytes $ B.unpack x
 
 ------------------------------------------------------------------------
 
---data Tokens =
---    Contextual Token ::> Tokens
---  | Positioned Error ::! Tokens
---  | EndTokens !Position
---  deriving (Show)
-
---data Contextual a = !a :@@ !Context deriving (Eq, Ord, Show)
-
 -- | Apply Scala's special newline rules. sometimes a newline should be
 -- interpreted as whitespace, and sometimes as a special token.
 applyNewLineRules :: Tokens -> Tokens
@@ -285,9 +283,13 @@ applyNewLineRules = updateState [] . mergeNewLines
   where
     mergeNewLines :: Tokens -> Tokens
     mergeNewLines ts = case ts of
-      Tok_NewLine _ :@@ lc ::> Tok_NewLine _ :@@ tc ::> ts' -> mergeNewLines (tc <@@ (Tok_NewLine Many :@@ lc) ::> ts')
-      t ::> ts'                                             -> t ::> mergeNewLines ts'
-      _                                                     -> ts
+
+      (Tok_NewLine _ :@@ lc ::>
+       Tok_NewLine _ :@@ tc ::> ts') ->
+        mergeNewLines (Tok_NewLine Many :@@ lc @@> tc ::> ts')
+
+      t ::> ts' -> t ::> mergeNewLines ts'
+      _         -> ts
 
 
     updateState :: [Token] -> Tokens -> Tokens
@@ -338,6 +340,7 @@ applyNewLineRules = updateState [] . mergeNewLines
     apply s (t ::> ts) = t ::> updateState s ts
 
     apply _ ts = ts
+
 
 stmtEnd :: Contextual Token -> Bool
 stmtEnd ct = case value ct of

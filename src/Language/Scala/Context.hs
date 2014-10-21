@@ -108,7 +108,7 @@ between x y = Context { _leadingContext  = leadingContext x
                       , _trailingContext = trailingContext y }
 
 (<@@) :: HasContext a => Context -> a -> a
-c <@@ x = cmap (\c' -> c' { _trailingContext = trailingContext c }) x
+c <@@ x = cmap (\c' -> c' { _leadingContext = leadingContext c }) x
 
 (@@>) :: HasContext a => a -> Context -> a
-x @@> c = cmap (\c' -> c' { _leadingContext  = leadingContext c }) x
+x @@> c = cmap (\c' -> c' { _trailingContext = trailingContext c }) x

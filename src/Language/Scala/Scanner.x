@@ -16,7 +16,7 @@ module Language.Scala.Scanner
     ) where
 
 import           Data.ByteString (ByteString)
-import qualified Data.ByteString as ByteString
+import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as UTF8
 import           Data.Char
 import           Data.Functor
@@ -137,8 +137,10 @@ tokens :-
 <0> "with"                    { produceSymbol Tok_With          }
 <0> "yield"                   { produceSymbol Tok_Yield         }
 
-<0> @varid                    { produceToken Tok_VarId   $ ByteString.take }
-<0> @plainid                  { produceToken Tok_PlainId $ ByteString.take }
+<0> @varid                    { produceToken Tok_VarId   $ B.take }
+<0> @plainid                  { produceToken Tok_PlainId $ B.take }
+
+<0> @symbol_literal           { produceToken Tok_Symbol $ B.drop 1 . B.take }
 
 <0> @decimal_literal          { produceToken id $ readDecimal       }
 <0> @hexadecimal_literal      { produceToken id $ readHexadecimal   }
@@ -180,9 +182,9 @@ type AlexInput = Positioned ByteString
 -- to Alex and take the opportunity to normalise all line breaks including
 -- CR+LF sequences into LFs:
 alexGetByte (bs :@ p) = do
-  (x, bs') <- ByteString.uncons bs
+  (x, bs') <- B.uncons bs
   case x of
-    0x0D -> case ByteString.uncons bs' of
+    0x0D -> case B.uncons bs' of
               Just (0x0A, bs'') -> return (0x0A, bs'' :@ nextLine p)
               _                 -> return (0x0A, bs'  :@ nextLine p)
     0x0A -> return (x, bs' :@ nextLine p)
@@ -220,7 +222,7 @@ parseOnly r len str = v
 parseWith :: ReadS a -> Int -> ByteString -> (a, String)
 parseWith r len str = v
   where
-    [v] = r $ UTF8.toString $ ByteString.take len str
+    [v] = r $ UTF8.toString $ B.take len str
 
 -- | Produce an int or a long token from a decimal literal.
 readDecimal :: Int -> ByteString -> Token
@@ -297,23 +299,23 @@ scanString rs sc inp =
     AlexEOF                -> reportIncompleteStringLiteral rs sc inp 0 inp
 
 endString :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endString rs _ _ _ inp' = (Tok_String $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endString rs _ _ _ inp' = (Tok_String $ B.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 endChar :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endChar rs _ _ _ inp' = (Tok_Char $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endChar rs _ _ _ inp' = (Tok_Char $ B.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 endStringId :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
-endStringId rs _ _ _ inp' = (Tok_StringId $ ByteString.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
+endStringId rs _ _ _ inp' = (Tok_StringId $ B.concat $ reverse $ value rs) :@@ between rs inp' ::> scanTokens inp'
 
 produceStringPart :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 produceStringPart rs sc inp len inp' = scanString (fmap (r :) rs) sc inp'
   where
-    r = ByteString.take len (value inp)
+    r = B.take len (value inp)
 
 produceSimpleEscape :: Char -> Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 produceSimpleEscape c rs sc _ _ inp' = scanString (fmap (r :) rs) sc inp'
   where
-    r = ByteString.singleton $ fromIntegral $ ord c
+    r = B.singleton $ fromIntegral $ ord c
 
 produceOctalEscape :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 produceOctalEscape rs sc inp len inp'
@@ -321,7 +323,7 @@ produceOctalEscape rs sc inp len inp'
     | otherwise = ("Illegal octal escape sequence; every byte in a string literal must have a value less than 256" <$ inp) ::! scanString rs sc inp'
   where
     x = parseOnly (readOct . tail) len (value inp) :: Int
-    r = ByteString.singleton $ fromIntegral x
+    r = B.singleton $ fromIntegral x
 
 reportIllegalEscape :: Positioned [ByteString] -> Int -> Positioned ByteString -> Int -> Positioned ByteString -> Tokens
 reportIllegalEscape rs sc inp _ inp' = ("Illegal escape sequence" <$ inp) ::! scanString rs sc inp'
