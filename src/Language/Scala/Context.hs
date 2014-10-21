@@ -5,7 +5,7 @@
 -- source files, although we do not prohibit it here (nor do we prohibit end
 -- positions placed ahead of the start position, and other such nonsense.)
 
-module Language.Scala.Contexts
+module Language.Scala.Context
     ( HasContext (..)
     , Context
     , Contextual (..)
@@ -25,8 +25,8 @@ module Language.Scala.Contexts
 import Control.Applicative
 import Data.ByteString (ByteString)
 
-import Language.Scala.Positions
-import Language.Scala.Utilities
+import Language.Scala.Position
+import Language.Scala.Util
 
 ------------------------------------------------------------------------
 

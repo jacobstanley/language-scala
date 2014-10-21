@@ -1,8 +1,9 @@
-module Language.Scala.Utilities
+module Language.Scala.Util
     ( HasValue (..)
     , List
 
     , Name
+    , Error
     , Index
     , IndexPath
 
@@ -37,8 +38,11 @@ class Functor f => HasValue f where
 -- | I like prefix names for lists.
 type List a = [a]
 
--- | Names and comments are represented by byte strings.
+-- | Names and comments are represented by bytestrings.
 type Name = ByteString
+
+-- | Error messages are represented by strings.
+type Error = String
 
 -- | A row number or column number.
 type Index = Int

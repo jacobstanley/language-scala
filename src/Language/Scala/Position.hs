@@ -1,6 +1,6 @@
 -- A class used to keep track of file positions.
 
-module Language.Scala.Positions
+module Language.Scala.Position
     ( Index
     , HasPosition (..)
     , Position
@@ -21,7 +21,7 @@ module Language.Scala.Positions
 ------------------------------------------------------------------------
 
 import Data.Functor
-import Language.Scala.Utilities
+import Language.Scala.Util
 
 ------------------------------------------------------------------------
 

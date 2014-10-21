@@ -1,12 +1,14 @@
 -- Data type used to describe individual lexical tokens, as well
 -- as sequences of such tokens. A token sequence may include embedded
--- error messages, and always ends in a special "Tok_EOF" element.
+-- error messages, and always ends in a special "EndTokens" element.
 -- All tokens in a sequence are annotated with their source context,
--- and "Tok_EOF" is annotated with position information.
+-- and "EndTokens" is annotated with position information.
 
 module Language.Scala.Tokens
     ( Token (..)
     , Tokens (..)
+
+    , applyNewLineRules
 
     , tokenLexeme
     , quotedString
@@ -15,17 +17,17 @@ module Language.Scala.Tokens
 
 ------------------------------------------------------------------------
 
-import           Data.Bits
+import           Data.Bits ((.&.), shiftR)
 import           Data.ByteString (ByteString)
-import qualified Data.ByteString as ByteString
-import           Data.Char
-import           Data.List
-import           Data.String
-import           Data.Word
+import qualified Data.ByteString as B
+import           Data.Char (ord)
+import           Data.List (intersperse)
+import           Data.String (fromString)
+import           Data.Word (Word8)
 
-import Language.Scala.Contexts
-import Language.Scala.Positions
-import Language.Scala.Utilities
+import           Language.Scala.Context
+import           Language.Scala.Position
+import           Language.Scala.Util
 
 ------------------------------------------------------------------------
 
@@ -82,7 +84,7 @@ data Token =
     | Tok_LBracket | Tok_RBracket
     | Tok_LBrace   | Tok_RBrace
 
-    | Tok_Dot        | Tok_Comma      | Tok_Semicolon
+    | Tok_Dot        | Tok_Comma      | Tok_Semi
     | Tok_Underscore | Tok_Colon      | Tok_Equals
     | Tok_Arrow      | Tok_BackArrow  | Tok_LowerBound
     | Tok_ViewBound  | Tok_UpperBound | Tok_Projection
@@ -92,6 +94,8 @@ data Token =
 -- to deal with it specially in a pre-parse phase:
 
     | Tok_NewLine
+
+    deriving (Eq, Ord)
 
 ------------------------------------------------------------------------
 
@@ -110,8 +114,8 @@ instance Show Token where
 -- marker, used to represent the output of lexical analyser.
 
 data Tokens =
-    Contextual Token  ::> Tokens
-  | Positioned String ::! Tokens
+    Contextual Token ::> Tokens
+  | Positioned Error ::! Tokens
   | EndTokens !Position
   deriving (Show)
 
@@ -125,83 +129,75 @@ data Tokens =
 -- escaped using either symbolic or minimal octal escape sequences.
 
 tokenLexeme :: Token -> ByteString
-
-tokenLexeme (Tok_VarId x)    = x
-tokenLexeme (Tok_PlainId x)  = x
-tokenLexeme (Tok_StringId x) = quotedString '`' x
-
-tokenLexeme (Tok_Int x)      = fromString $ shows x ""
-tokenLexeme (Tok_Long x)     = fromString $ shows x "L"
-
-tokenLexeme (Tok_Float m e)  = fromString $ uncurry showScientific (normalisedScientific m e) "F"
-tokenLexeme (Tok_Double m e) = fromString $ uncurry showScientific (normalisedScientific m e) ""
-
-tokenLexeme (Tok_Char x)     = quotedString '\'' x
-tokenLexeme (Tok_String x)   = quotedString '"' x
-
-tokenLexeme (Tok_Abstract)   = fromString "abstract"
-tokenLexeme (Tok_Case)       = fromString "case"
-tokenLexeme (Tok_Catch)      = fromString "catch"
-tokenLexeme (Tok_Class)      = fromString "class"
-tokenLexeme (Tok_Def)        = fromString "def"
-tokenLexeme (Tok_Do)         = fromString "do"
-tokenLexeme (Tok_Else)       = fromString "else"
-tokenLexeme (Tok_Extends)    = fromString "extends"
-tokenLexeme (Tok_False)      = fromString "false"
-tokenLexeme (Tok_Final)      = fromString "final"
-tokenLexeme (Tok_Finally)    = fromString "finally"
-tokenLexeme (Tok_For)        = fromString "for"
-tokenLexeme (Tok_ForSome)    = fromString "forSome"
-tokenLexeme (Tok_If)         = fromString "if"
-tokenLexeme (Tok_Implicit)   = fromString "implicit"
-tokenLexeme (Tok_Import)     = fromString "import"
-tokenLexeme (Tok_Lazy)       = fromString "lazy"
-tokenLexeme (Tok_Match)      = fromString "match"
-tokenLexeme (Tok_New)        = fromString "new"
-tokenLexeme (Tok_Null)       = fromString "null"
-tokenLexeme (Tok_Object)     = fromString "object"
-tokenLexeme (Tok_Override)   = fromString "override"
-tokenLexeme (Tok_Package)    = fromString "package"
-tokenLexeme (Tok_Private)    = fromString "private"
-tokenLexeme (Tok_Protected)  = fromString "protected"
-tokenLexeme (Tok_Return)     = fromString "return"
-tokenLexeme (Tok_Sealed)     = fromString "sealed"
-tokenLexeme (Tok_Super)      = fromString "super"
-tokenLexeme (Tok_This)       = fromString "this"
-tokenLexeme (Tok_Throw)      = fromString "throw"
-tokenLexeme (Tok_Trait)      = fromString "trait"
-tokenLexeme (Tok_Try)        = fromString "try"
-tokenLexeme (Tok_True)       = fromString "true"
-tokenLexeme (Tok_Type)       = fromString "type"
-tokenLexeme (Tok_Val)        = fromString "val"
-tokenLexeme (Tok_Var)        = fromString "var"
-tokenLexeme (Tok_While)      = fromString "while"
-tokenLexeme (Tok_With)       = fromString "with"
-tokenLexeme (Tok_Yield)      = fromString "yield"
-
-tokenLexeme (Tok_LParen)     = fromString "("
-tokenLexeme (Tok_RParen)     = fromString ")"
-tokenLexeme (Tok_LBracket)   = fromString "["
-tokenLexeme (Tok_RBracket)   = fromString "]"
-tokenLexeme (Tok_LBrace)     = fromString "{"
-tokenLexeme (Tok_RBrace)     = fromString "}"
-
-tokenLexeme (Tok_Dot)        = fromString "."
-tokenLexeme (Tok_Comma)      = fromString ","
-tokenLexeme (Tok_Semicolon)  = fromString ";"
-
-tokenLexeme (Tok_Underscore) = fromString "_"
-tokenLexeme (Tok_Colon)      = fromString ":"
-tokenLexeme (Tok_Equals)     = fromString "="
-tokenLexeme (Tok_Arrow)      = fromString "=>"
-tokenLexeme (Tok_BackArrow)  = fromString "<-"
-tokenLexeme (Tok_LowerBound) = fromString "<:"
-tokenLexeme (Tok_ViewBound)  = fromString "<%"
-tokenLexeme (Tok_UpperBound) = fromString ">:"
-tokenLexeme (Tok_Projection) = fromString "#"
-tokenLexeme (Tok_Annotation) = fromString "@"
-
-tokenLexeme (Tok_NewLine)    = fromString "new-line"
+tokenLexeme t = case t of
+  Tok_VarId    x -> x
+  Tok_PlainId  x -> x
+  Tok_StringId x -> quotedString '`' x
+  Tok_Int      x -> fromString (shows x "")
+  Tok_Long     x -> fromString (shows x "L")
+  Tok_Float  m e -> fromString (uncurry showScientific (normalisedScientific m e) "F")
+  Tok_Double m e -> fromString (uncurry showScientific (normalisedScientific m e) "")
+  Tok_Char     x -> quotedString '\'' x
+  Tok_String   x -> quotedString '"' x
+  Tok_Abstract   -> fromString "abstract"
+  Tok_Case       -> fromString "case"
+  Tok_Catch      -> fromString "catch"
+  Tok_Class      -> fromString "class"
+  Tok_Def        -> fromString "def"
+  Tok_Do         -> fromString "do"
+  Tok_Else       -> fromString "else"
+  Tok_Extends    -> fromString "extends"
+  Tok_False      -> fromString "false"
+  Tok_Final      -> fromString "final"
+  Tok_Finally    -> fromString "finally"
+  Tok_For        -> fromString "for"
+  Tok_ForSome    -> fromString "forSome"
+  Tok_If         -> fromString "if"
+  Tok_Implicit   -> fromString "implicit"
+  Tok_Import     -> fromString "import"
+  Tok_Lazy       -> fromString "lazy"
+  Tok_Match      -> fromString "match"
+  Tok_New        -> fromString "new"
+  Tok_Null       -> fromString "null"
+  Tok_Object     -> fromString "object"
+  Tok_Override   -> fromString "override"
+  Tok_Package    -> fromString "package"
+  Tok_Private    -> fromString "private"
+  Tok_Protected  -> fromString "protected"
+  Tok_Return     -> fromString "return"
+  Tok_Sealed     -> fromString "sealed"
+  Tok_Super      -> fromString "super"
+  Tok_This       -> fromString "this"
+  Tok_Throw      -> fromString "throw"
+  Tok_Trait      -> fromString "trait"
+  Tok_Try        -> fromString "try"
+  Tok_True       -> fromString "true"
+  Tok_Type       -> fromString "type"
+  Tok_Val        -> fromString "val"
+  Tok_Var        -> fromString "var"
+  Tok_While      -> fromString "while"
+  Tok_With       -> fromString "with"
+  Tok_Yield      -> fromString "yield"
+  Tok_LParen     -> fromString "("
+  Tok_RParen     -> fromString ")"
+  Tok_LBracket   -> fromString "["
+  Tok_RBracket   -> fromString "]"
+  Tok_LBrace     -> fromString "{"
+  Tok_RBrace     -> fromString "}"
+  Tok_Dot        -> fromString "."
+  Tok_Comma      -> fromString ","
+  Tok_Semi       -> fromString ";"
+  Tok_Underscore -> fromString "_"
+  Tok_Colon      -> fromString ":"
+  Tok_Equals     -> fromString "="
+  Tok_Arrow      -> fromString "=>"
+  Tok_BackArrow  -> fromString "                                                       <- "
+  Tok_LowerBound -> fromString "<:"
+  Tok_ViewBound  -> fromString "<%"
+  Tok_UpperBound -> fromString ">:"
+  Tok_Projection -> fromString "#"
+  Tok_Annotation -> fromString "@"
+  Tok_NewLine    -> fromString "new-line"
 
 ------------------------------------------------------------------------
 
@@ -230,39 +226,123 @@ showScientific m e
 
 -- | Quote and escape string literals.
 quotedString :: Char -> ByteString -> ByteString
-quotedString qc x = ByteString.pack $ (quoteChar qc :) $ quoteBytes $ ByteString.unpack x
- where
-  quoteBytes (0x08:bs) = quoteChar '\\' : quoteChar 'b'  : quoteBytes bs
-  quoteBytes (0x09:bs) = quoteChar '\\' : quoteChar 't'  : quoteBytes bs
-  quoteBytes (0x0A:bs) = quoteChar '\\' : quoteChar 'n'  : quoteBytes bs
-  quoteBytes (0x0C:bs) = quoteChar '\\' : quoteChar 'f'  : quoteBytes bs
-  quoteBytes (0x0D:bs) = quoteChar '\\' : quoteChar 'r'  : quoteBytes bs
-  quoteBytes (0x22:bs) = quoteChar '\\' : quoteChar '\"' : quoteBytes bs
-  quoteBytes (0x27:bs) = quoteChar '\\' : quoteChar '\'' : quoteBytes bs
-  quoteBytes (0x5C:bs) = quoteChar '\\' : quoteChar '\\' : quoteBytes bs
-  quoteBytes (b:bs)
-    | 32 <= b && b <= 126 = b : quoteBytes bs
-    | otherwise           = quoteChar '\\' : quoteOctal b bs
-  quoteBytes [] = [quoteChar '\"']
+quotedString qc x = B.pack $ (quoteChar qc :) $ quoteBytes $ B.unpack x
+  where
+    quoteBytes (0x08:bs) = quoteChar '\\' : quoteChar 'b'  : quoteBytes bs
+    quoteBytes (0x09:bs) = quoteChar '\\' : quoteChar 't'  : quoteBytes bs
+    quoteBytes (0x0A:bs) = quoteChar '\\' : quoteChar 'n'  : quoteBytes bs
+    quoteBytes (0x0C:bs) = quoteChar '\\' : quoteChar 'f'  : quoteBytes bs
+    quoteBytes (0x0D:bs) = quoteChar '\\' : quoteChar 'r'  : quoteBytes bs
+    quoteBytes (0x22:bs) = quoteChar '\\' : quoteChar '\"' : quoteBytes bs
+    quoteBytes (0x27:bs) = quoteChar '\\' : quoteChar '\'' : quoteBytes bs
+    quoteBytes (0x5C:bs) = quoteChar '\\' : quoteChar '\\' : quoteBytes bs
+    quoteBytes (b:bs)
+      | 32 <= b && b <= 126 = b : quoteBytes bs
+      | otherwise           = quoteChar '\\' : quoteOctal b bs
+    quoteBytes [] = [quoteChar '\"']
 
-  quoteOctal b bs
-    | b > 0o77 || startsWithOctit bs = quoteOctit (b `shiftR` 6)
-                                     : quoteOctit ((b `shiftR` 3) .&. 7)
-                                     : quoteOctit (b .&. 7)
-                                     : quoteBytes bs
+    quoteOctal b bs
+      | b > 0o77 || startsWithOctit bs = quoteOctit (b `shiftR` 6)
+                                       : quoteOctit ((b `shiftR` 3) .&. 7)
+                                       : quoteOctit (b .&. 7)
+                                       : quoteBytes bs
 
-    | b > 0o7                        = quoteOctit (b `shiftR` 3)
-                                     : quoteOctit (b .&. 0o7)
-                                     : quoteBytes bs
+      | b > 0o7                        = quoteOctit (b `shiftR` 3)
+                                       : quoteOctit (b .&. 0o7)
+                                       : quoteBytes bs
 
-    | otherwise                      = quoteOctit b
-                                     : quoteBytes bs
+      | otherwise                      = quoteOctit b
+                                       : quoteBytes bs
 
-  startsWithOctit (b:_) = quoteChar '0' <= b && b <= quoteChar '7'
-  startsWithOctit [] = False
+    startsWithOctit (b:_) = quoteChar '0' <= b && b <= quoteChar '7'
+    startsWithOctit [] = False
 
-  quoteOctit :: Word8 -> Word8
-  quoteOctit = (+ quoteChar '0')
+    quoteOctit :: Word8 -> Word8
+    quoteOctit = (+ quoteChar '0')
 
-  quoteChar :: Char -> Word8
-  quoteChar = fromIntegral . ord
+    quoteChar :: Char -> Word8
+    quoteChar = fromIntegral . ord
+
+------------------------------------------------------------------------
+
+--data Tokens =
+--    Contextual Token ::> Tokens
+--  | Positioned Error ::! Tokens
+--  | EndTokens !Position
+--  deriving (Show)
+
+--data Contextual a = !a :@@ !Context deriving (Eq, Ord, Show)
+
+-- | Apply Scala's special newline rules. sometimes a newline should be
+-- interpreted as whitespace, and sometimes as a special token.
+applyNewLineRules :: Tokens -> Tokens
+applyNewLineRules = apply
+  where
+    apply (pre ::> nl@(Tok_NewLine :@@ _)
+               ::> ts@(Tok_Case :@@ _ ::> Tok_Class :@@ _ ::> _))
+        | stmtEnd pre = pre ::> nl ::> apply ts
+
+    apply (pre ::> nl@(Tok_NewLine :@@ _)
+               ::> ts@(Tok_Case :@@ _ ::> Tok_Object :@@ _ ::> _))
+        | stmtEnd pre = pre ::> nl ::> apply ts
+
+    apply (pre ::> nl@(Tok_NewLine :@@ _)
+               ::> ts@(post ::> _))
+        | stmtEnd pre && stmtBegin post = pre ::> nl ::> apply ts
+
+    apply (Tok_NewLine :@@ _ ::> ts) = apply ts
+
+    apply (t ::> ts) = t ::> apply ts
+
+    apply ts = ts
+
+stmtEnd :: Contextual Token -> Bool
+stmtEnd ct = case value ct of
+  Tok_VarId    _ -> True
+  Tok_PlainId  _ -> True
+  Tok_StringId _ -> True
+  Tok_Int      _ -> True
+  Tok_Long     _ -> True
+  Tok_Float  _ _ -> True
+  Tok_Double _ _ -> True
+  Tok_Char     _ -> True
+  Tok_String   _ -> True
+  Tok_This       -> True
+  Tok_Null       -> True
+  Tok_True       -> True
+  Tok_False      -> True
+  Tok_Return     -> True
+  Tok_Type       -> True
+  Tok_Underscore -> True
+  Tok_RParen     -> True
+  Tok_RBracket   -> True
+  Tok_RBrace     -> True
+  _              -> False
+
+stmtBegin :: Contextual Token -> Bool
+stmtBegin ct = case value ct of
+  Tok_Case       -> False
+  Tok_Catch      -> False
+  Tok_Else       -> False
+  Tok_Extends    -> False
+  Tok_Finally    -> False
+  Tok_ForSome    -> False
+  Tok_Match      -> False
+  Tok_With       -> False
+  Tok_Yield      -> False
+  Tok_Comma      -> False
+  Tok_Dot        -> False
+  Tok_Semi       -> False
+  Tok_Colon      -> False
+  Tok_Equals     -> False
+  Tok_Arrow      -> False
+  Tok_BackArrow  -> False
+  Tok_LowerBound -> False
+  Tok_ViewBound  -> False
+  Tok_UpperBound -> False
+  Tok_Projection -> False
+  Tok_LBracket   -> False
+  Tok_RParen     -> False
+  Tok_RBracket   -> False
+  Tok_RBrace     -> False
+  _              -> True

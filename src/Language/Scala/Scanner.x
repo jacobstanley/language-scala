@@ -24,10 +24,10 @@ import           Data.Maybe
 import           Data.Word
 import           Numeric
 
-import           Language.Scala.Contexts
-import           Language.Scala.Positions
+import           Language.Scala.Context
+import           Language.Scala.Position
 import           Language.Scala.Tokens
-import           Language.Scala.Utilities
+import           Language.Scala.Util
 
 }
 
@@ -37,7 +37,7 @@ $space                        = [ \ \t \r ]
 $upper                        = [ A-Z \$ _ ]
 $lower                        = [ a-z ]
 @letter                       = $upper | $lower
-$opchar                       = [ \! \# \% \& \* \+ \- \/ \< \= \> \? \@ \| \~ ]
+$opchar                       = [ \! \# \% \& \* \+ \- \\ \/ \< \= \> \? \@ \| \~ ]
 
 $octit                        = [ 0-7 ]
 $digit                        = [ 0-9 ]
@@ -80,7 +80,7 @@ tokens :-
 <0> "}"                       { produceSymbol Tok_RBrace     }
 
 <0> "."                       { produceSymbol Tok_Dot        }
-<0> ";"                       { produceSymbol Tok_Semicolon  }
+<0> ";"                       { produceSymbol Tok_Semi       }
 <0> ","                       { produceSymbol Tok_Comma      }
 
 <0> "_"                       { produceSymbol Tok_Underscore }
