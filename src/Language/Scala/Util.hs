@@ -5,7 +5,6 @@ module Language.Scala.Util
     , Ident
     , Error
     , Index
-    , IndexPath
 
     , PList (..)
     , fromPList
@@ -46,9 +45,6 @@ type Error = String
 
 -- | A row number or column number.
 type Index = Int
-
--- | A list of indicies.
-type IndexPath = [Index]
 
 -- | Right-recursive lists with a distinguished leftmost element type,
 -- specialised into non-empty lists ("QList") which start with "()" and

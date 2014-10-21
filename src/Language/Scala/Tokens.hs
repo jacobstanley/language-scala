@@ -9,6 +9,13 @@ module Language.Scala.Tokens
     , Tokens (..)
     , NewLineCount (..)
 
+    , integerTokenValue
+    , floatTokenValue
+    , negateFloat
+    , charTokenValue
+    , stringTokenValue
+    , identTokenValue
+
     , applyNewLineRules
 
     , tokenLexeme
@@ -128,6 +135,37 @@ data Tokens =
   | Positioned Error ::! Tokens
   | EndTokens !Position
   deriving (Show)
+
+------------------------------------------------------------------------
+-- Partial functions for extracting attributes
+
+integerTokenValue :: Token -> Integer
+integerTokenValue (Tok_Int  x) = x
+integerTokenValue (Tok_Long x) = x
+integerTokenValue t = error ("integerTokenValue: not an integer token: " <> show t)
+
+floatTokenValue :: Token -> (Integer, Integer)
+floatTokenValue (Tok_Float  m e) = (m, e)
+floatTokenValue (Tok_Double m e) = (m, e)
+floatTokenValue t = error ("floatTokenValue: not a float token: " <> show t)
+
+negateFloat :: (Integer, Integer) -> (Integer, Integer)
+negateFloat (m, e) = (-m, e)
+
+charTokenValue :: Token -> Char
+charTokenValue (Tok_Char x) = x
+charTokenValue t = error ("charTokenValue: not a character token: " <> show t)
+
+stringTokenValue :: Token -> ByteString
+stringTokenValue (Tok_String x)   = x
+stringTokenValue (Tok_Symbol x)   = x
+stringTokenValue t = error ("stringTokenValue: not a string token: " <> show t)
+
+identTokenValue :: Token -> Ident
+identTokenValue (Tok_VarId x)    = x
+identTokenValue (Tok_PlainId x)  = x
+identTokenValue (Tok_StringId x) = x
+identTokenValue t = error ("identTokenValue: not an identifier token: " <> show t)
 
 ------------------------------------------------------------------------
 

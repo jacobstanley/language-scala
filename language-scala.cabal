@@ -28,8 +28,10 @@ library
 
   exposed-modules:
     Language.Scala.Context
+    Language.Scala.Parser
     Language.Scala.Position
     Language.Scala.Scanner
+    Language.Scala.Syntax
     Language.Scala.Tokens
     Language.Scala.Util
 

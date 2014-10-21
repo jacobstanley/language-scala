@@ -7,6 +7,7 @@ import           Data.Monoid ((<>))
 import           System.Console.ANSI
 import           System.Environment (getArgs)
 
+import           Language.Scala.Parser
 import           Language.Scala.Position
 import           Language.Scala.Scanner
 import           Language.Scala.Tokens
@@ -24,10 +25,15 @@ main = do
 runScanner :: FilePath -> IO ()
 runScanner path = do
     bs <- B.readFile path
+
     let toks  = scanTokens (bs :@ (startPositionInFile path))
         toks' = applyNewLineRules toks
+
     mapM_ printColor (toList toks')
     putStrLn ""
+
+    let ast = parseWith compilationUnitGrammar toks'
+    print ast
   where
     toList :: Tokens -> [Token]
     toList (x ::> xs)    = value x : toList xs
@@ -49,6 +55,7 @@ printColor tok = do
 data Highlight = VarId
                | PlainId
                | StringId
+               | Symbol
                | Number
                | String
                | Bracket
@@ -61,6 +68,7 @@ sgr h = case h of
     VarId         -> v Cyan
     PlainId       -> d Magenta
     StringId      -> d Magenta
+    Symbol        -> v Yellow
     Number        -> v Red
     String        -> d Green
     Bracket       -> d Yellow
@@ -77,7 +85,7 @@ highlight tok = case tok of
   Tok_VarId    _ -> VarId
   Tok_PlainId  _ -> PlainId
   Tok_StringId _ -> StringId
-  Tok_Symbol   _ -> PlainId
+  Tok_Symbol   _ -> Symbol
   Tok_Int      _ -> Number
   Tok_Long     _ -> Number
   Tok_Float  _ _ -> Number
