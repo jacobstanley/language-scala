@@ -7,6 +7,7 @@
 module Language.Scala.Tokens
     ( Token (..)
     , Tokens (..)
+    , NewLineCount (..)
 
     , applyNewLineRules
 
@@ -35,12 +36,20 @@ infixr 5 ::>, ::!
 
 ------------------------------------------------------------------------
 
+data NewLineCount = One | Many
+    deriving (Eq, Ord, Show)
+
 -- | A Scala token.
 data Token =
 
+-- New-line, we need to track this differently from other whitespace as we need
+-- to deal with it specially in a pre-parse phase:
+
+      Tok_NewLine  !NewLineCount
+
 -- Identifiers:
 
-      Tok_VarId    !Name
+    | Tok_VarId    !Name
     | Tok_PlainId  !Name
     | Tok_StringId !Name
 
@@ -90,11 +99,6 @@ data Token =
     | Tok_ViewBound  | Tok_UpperBound | Tok_Projection
     | Tok_Annotation
 
--- New-line, we need to track this differently from other whitespace as we need
--- to deal with it specially in a pre-parse phase:
-
-    | Tok_NewLine
-
     deriving (Eq, Ord)
 
 ------------------------------------------------------------------------
@@ -130,74 +134,75 @@ data Tokens =
 
 tokenLexeme :: Token -> ByteString
 tokenLexeme t = case t of
-  Tok_VarId    x -> x
-  Tok_PlainId  x -> x
-  Tok_StringId x -> quotedString '`' x
-  Tok_Int      x -> fromString (shows x "")
-  Tok_Long     x -> fromString (shows x "L")
-  Tok_Float  m e -> fromString (uncurry showScientific (normalisedScientific m e) "F")
-  Tok_Double m e -> fromString (uncurry showScientific (normalisedScientific m e) "")
-  Tok_Char     x -> quotedString '\'' x
-  Tok_String   x -> quotedString '"' x
-  Tok_Abstract   -> fromString "abstract"
-  Tok_Case       -> fromString "case"
-  Tok_Catch      -> fromString "catch"
-  Tok_Class      -> fromString "class"
-  Tok_Def        -> fromString "def"
-  Tok_Do         -> fromString "do"
-  Tok_Else       -> fromString "else"
-  Tok_Extends    -> fromString "extends"
-  Tok_False      -> fromString "false"
-  Tok_Final      -> fromString "final"
-  Tok_Finally    -> fromString "finally"
-  Tok_For        -> fromString "for"
-  Tok_ForSome    -> fromString "forSome"
-  Tok_If         -> fromString "if"
-  Tok_Implicit   -> fromString "implicit"
-  Tok_Import     -> fromString "import"
-  Tok_Lazy       -> fromString "lazy"
-  Tok_Match      -> fromString "match"
-  Tok_New        -> fromString "new"
-  Tok_Null       -> fromString "null"
-  Tok_Object     -> fromString "object"
-  Tok_Override   -> fromString "override"
-  Tok_Package    -> fromString "package"
-  Tok_Private    -> fromString "private"
-  Tok_Protected  -> fromString "protected"
-  Tok_Return     -> fromString "return"
-  Tok_Sealed     -> fromString "sealed"
-  Tok_Super      -> fromString "super"
-  Tok_This       -> fromString "this"
-  Tok_Throw      -> fromString "throw"
-  Tok_Trait      -> fromString "trait"
-  Tok_Try        -> fromString "try"
-  Tok_True       -> fromString "true"
-  Tok_Type       -> fromString "type"
-  Tok_Val        -> fromString "val"
-  Tok_Var        -> fromString "var"
-  Tok_While      -> fromString "while"
-  Tok_With       -> fromString "with"
-  Tok_Yield      -> fromString "yield"
-  Tok_LParen     -> fromString "("
-  Tok_RParen     -> fromString ")"
-  Tok_LBracket   -> fromString "["
-  Tok_RBracket   -> fromString "]"
-  Tok_LBrace     -> fromString "{"
-  Tok_RBrace     -> fromString "}"
-  Tok_Dot        -> fromString "."
-  Tok_Comma      -> fromString ","
-  Tok_Semi       -> fromString ";"
-  Tok_Underscore -> fromString "_"
-  Tok_Colon      -> fromString ":"
-  Tok_Equals     -> fromString "="
-  Tok_Arrow      -> fromString "=>"
-  Tok_BackArrow  -> fromString "                                                       <- "
-  Tok_LowerBound -> fromString "<:"
-  Tok_ViewBound  -> fromString "<%"
-  Tok_UpperBound -> fromString ">:"
-  Tok_Projection -> fromString "#"
-  Tok_Annotation -> fromString "@"
-  Tok_NewLine    -> fromString "new-line"
+  Tok_NewLine One  -> fromString "newline"
+  Tok_NewLine Many -> fromString "newlines"
+  Tok_VarId    x   -> x
+  Tok_PlainId  x   -> x
+  Tok_StringId x   -> quotedString '`' x
+  Tok_Int      x   -> fromString (shows x "")
+  Tok_Long     x   -> fromString (shows x "L")
+  Tok_Float  m e   -> fromString (uncurry showScientific (normalisedScientific m e) "F")
+  Tok_Double m e   -> fromString (uncurry showScientific (normalisedScientific m e) "")
+  Tok_Char     x   -> quotedString '\'' x
+  Tok_String   x   -> quotedString '"' x
+  Tok_Abstract     -> fromString "abstract"
+  Tok_Case         -> fromString "case"
+  Tok_Catch        -> fromString "catch"
+  Tok_Class        -> fromString "class"
+  Tok_Def          -> fromString "def"
+  Tok_Do           -> fromString "do"
+  Tok_Else         -> fromString "else"
+  Tok_Extends      -> fromString "extends"
+  Tok_False        -> fromString "false"
+  Tok_Final        -> fromString "final"
+  Tok_Finally      -> fromString "finally"
+  Tok_For          -> fromString "for"
+  Tok_ForSome      -> fromString "forSome"
+  Tok_If           -> fromString "if"
+  Tok_Implicit     -> fromString "implicit"
+  Tok_Import       -> fromString "import"
+  Tok_Lazy         -> fromString "lazy"
+  Tok_Match        -> fromString "match"
+  Tok_New          -> fromString "new"
+  Tok_Null         -> fromString "null"
+  Tok_Object       -> fromString "object"
+  Tok_Override     -> fromString "override"
+  Tok_Package      -> fromString "package"
+  Tok_Private      -> fromString "private"
+  Tok_Protected    -> fromString "protected"
+  Tok_Return       -> fromString "return"
+  Tok_Sealed       -> fromString "sealed"
+  Tok_Super        -> fromString "super"
+  Tok_This         -> fromString "this"
+  Tok_Throw        -> fromString "throw"
+  Tok_Trait        -> fromString "trait"
+  Tok_Try          -> fromString "try"
+  Tok_True         -> fromString "true"
+  Tok_Type         -> fromString "type"
+  Tok_Val          -> fromString "val"
+  Tok_Var          -> fromString "var"
+  Tok_While        -> fromString "while"
+  Tok_With         -> fromString "with"
+  Tok_Yield        -> fromString "yield"
+  Tok_LParen       -> fromString "("
+  Tok_RParen       -> fromString ")"
+  Tok_LBracket     -> fromString "["
+  Tok_RBracket     -> fromString "]"
+  Tok_LBrace       -> fromString "{"
+  Tok_RBrace       -> fromString "}"
+  Tok_Dot          -> fromString "."
+  Tok_Comma        -> fromString ","
+  Tok_Semi         -> fromString ";"
+  Tok_Underscore   -> fromString "_"
+  Tok_Colon        -> fromString ":"
+  Tok_Equals       -> fromString "="
+  Tok_Arrow        -> fromString "=>"
+  Tok_BackArrow    -> fromString "<-"
+  Tok_LowerBound   -> fromString "<:"
+  Tok_ViewBound    -> fromString "<%"
+  Tok_UpperBound   -> fromString ">:"
+  Tok_Projection   -> fromString "#"
+  Tok_Annotation   -> fromString "@"
 
 ------------------------------------------------------------------------
 
@@ -276,25 +281,63 @@ quotedString qc x = B.pack $ (quoteChar qc :) $ quoteBytes $ B.unpack x
 -- | Apply Scala's special newline rules. sometimes a newline should be
 -- interpreted as whitespace, and sometimes as a special token.
 applyNewLineRules :: Tokens -> Tokens
-applyNewLineRules = apply
+applyNewLineRules = updateState [] . mergeNewLines
   where
-    apply (pre ::> nl@(Tok_NewLine :@@ _)
-               ::> ts@(Tok_Case :@@ _ ::> Tok_Class :@@ _ ::> _))
-        | stmtEnd pre = pre ::> nl ::> apply ts
+    mergeNewLines :: Tokens -> Tokens
+    mergeNewLines ts = case ts of
+      Tok_NewLine _ :@@ lc ::> Tok_NewLine _ :@@ tc ::> ts' -> mergeNewLines (tc <@@ (Tok_NewLine Many :@@ lc) ::> ts')
+      t ::> ts'                                             -> t ::> mergeNewLines ts'
+      _                                                     -> ts
 
-    apply (pre ::> nl@(Tok_NewLine :@@ _)
-               ::> ts@(Tok_Case :@@ _ ::> Tok_Object :@@ _ ::> _))
-        | stmtEnd pre = pre ::> nl ::> apply ts
 
-    apply (pre ::> nl@(Tok_NewLine :@@ _)
-               ::> ts@(post ::> _))
-        | stmtEnd pre && stmtBegin post = pre ::> nl ::> apply ts
+    updateState :: [Token] -> Tokens -> Tokens
+    updateState ss ts = case (ss, ts) of
+      (Tok_LParen   : ss', Tok_RParen   :@@ _ ::> _) -> apply ss' ts
+      (Tok_LBracket : ss', Tok_RBracket :@@ _ ::> _) -> apply ss' ts
+      (Tok_LBrace   : ss', Tok_RBrace   :@@ _ ::> _) -> apply ss' ts
+      (Tok_Case     : ss', Tok_Arrow    :@@ _ ::> _) -> apply ss' ts
 
-    apply (Tok_NewLine :@@ _ ::> ts) = apply ts
+      (                 _, Tok_LParen   :@@ _ ::> _) -> apply (Tok_LParen   : ss) ts
+      (                 _, Tok_LBracket :@@ _ ::> _) -> apply (Tok_LBracket : ss) ts
+      (                 _, Tok_LBrace   :@@ _ ::> _) -> apply (Tok_LBrace   : ss) ts
 
-    apply (t ::> ts) = t ::> apply ts
+      (_, Tok_Case :@@ _ ::> Tok_Class  :@@ _ ::> _) -> apply ss ts
+      (_, Tok_Case :@@ _ ::> Tok_Object :@@ _ ::> _) -> apply ss ts
+      (_, Tok_Case :@@ _ ::>                _ ::> _) -> apply (Tok_Case     : ss) ts
 
-    apply ts = ts
+      (_,                                         _) -> apply ss ts
+
+
+    newlinesEnabled :: [Token] -> Bool
+    newlinesEnabled (Tok_LParen   : _) = False
+    newlinesEnabled (Tok_LBracket : _) = False
+    newlinesEnabled (Tok_Case     : _) = False
+    newlinesEnabled (               _) = True
+
+
+    apply :: [Token] -> Tokens -> Tokens
+
+    apply s (pre ::> nl@(Tok_NewLine _ :@@ _)
+                 ::> ts@(Tok_Case      :@@ _ ::> Tok_Class :@@ _ ::> _))
+        | stmtEnd pre &&
+          newlinesEnabled s = pre ::> nl ::> updateState s ts
+
+    apply s (pre ::> nl@(Tok_NewLine _ :@@ _)
+                 ::> ts@(Tok_Case      :@@ _ ::> Tok_Object :@@ _ ::> _))
+        | stmtEnd pre &&
+          newlinesEnabled s = pre ::> nl ::> updateState s ts
+
+    apply s (pre ::> nl@(Tok_NewLine _ :@@ _)
+                 ::> ts@(post ::> _))
+        | stmtEnd   pre  &&
+          stmtBegin post &&
+          newlinesEnabled s = pre ::> nl ::> updateState s ts
+
+    apply s (Tok_NewLine _ :@@ _ ::> ts) = updateState s ts
+
+    apply s (t ::> ts) = t ::> updateState s ts
+
+    apply _ ts = ts
 
 stmtEnd :: Contextual Token -> Bool
 stmtEnd ct = case value ct of

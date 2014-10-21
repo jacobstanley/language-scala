@@ -32,7 +32,7 @@ import           Language.Scala.Util
 }
 
 $printable                    = [ \ - \~ ]
-$space                        = [ \ \t \r ]
+$space                        = [ \  \t \r ]
 
 $upper                        = [ A-Z \$ _ ]
 $lower                        = [ a-z ]
@@ -70,72 +70,72 @@ $hexit                        = [ 0-9 a-f A-F ]
 tokens :-
 
 <0> @whitespace               ;
-<0> @newline                  { produceSymbol Tok_NewLine    }
+<0> @newline                  { produceSymbol (Tok_NewLine One) }
 
-<0> "("                       { produceSymbol Tok_LParen     }
-<0> ")"                       { produceSymbol Tok_RParen     }
-<0> "["                       { produceSymbol Tok_LBracket   }
-<0> "]"                       { produceSymbol Tok_RBracket   }
-<0> "{"                       { produceSymbol Tok_LBrace     }
-<0> "}"                       { produceSymbol Tok_RBrace     }
+<0> "("                       { produceSymbol Tok_LParen        }
+<0> ")"                       { produceSymbol Tok_RParen        }
+<0> "["                       { produceSymbol Tok_LBracket      }
+<0> "]"                       { produceSymbol Tok_RBracket      }
+<0> "{"                       { produceSymbol Tok_LBrace        }
+<0> "}"                       { produceSymbol Tok_RBrace        }
 
-<0> "."                       { produceSymbol Tok_Dot        }
-<0> ";"                       { produceSymbol Tok_Semi       }
-<0> ","                       { produceSymbol Tok_Comma      }
+<0> "."                       { produceSymbol Tok_Dot           }
+<0> ";"                       { produceSymbol Tok_Semi          }
+<0> ","                       { produceSymbol Tok_Comma         }
 
-<0> "_"                       { produceSymbol Tok_Underscore }
-<0> ":"                       { produceSymbol Tok_Colon      }
-<0> "="                       { produceSymbol Tok_Equals     }
-<0> "=>"                      { produceSymbol Tok_Arrow      }
-<0> "<-"                      { produceSymbol Tok_BackArrow  }
-<0> "<:"                      { produceSymbol Tok_LowerBound }
-<0> "<%"                      { produceSymbol Tok_ViewBound  }
-<0> ">:"                      { produceSymbol Tok_UpperBound }
-<0> "#"                       { produceSymbol Tok_Projection }
-<0> "@"                       { produceSymbol Tok_Annotation }
+<0> "_"                       { produceSymbol Tok_Underscore    }
+<0> ":"                       { produceSymbol Tok_Colon         }
+<0> "="                       { produceSymbol Tok_Equals        }
+<0> "=>"                      { produceSymbol Tok_Arrow         }
+<0> "<-"                      { produceSymbol Tok_BackArrow     }
+<0> "<:"                      { produceSymbol Tok_LowerBound    }
+<0> "<%"                      { produceSymbol Tok_ViewBound     }
+<0> ">:"                      { produceSymbol Tok_UpperBound    }
+<0> "#"                       { produceSymbol Tok_Projection    }
+<0> "@"                       { produceSymbol Tok_Annotation    }
 
 -- The Unicode operators \u2  1D2 ‘⇒’ and \u2190 ‘←’, which have the ASCII
 -- equivants '=>' and '<-',   are also reserved.
 
-<0> "abstract"                { produceSymbol Tok_Abstract   }
-<0> "case"                    { produceSymbol Tok_Case       }
-<0> "catch"                   { produceSymbol Tok_Catch      }
-<0> "class"                   { produceSymbol Tok_Class      }
-<0> "def"                     { produceSymbol Tok_Def        }
-<0> "do"                      { produceSymbol Tok_Do         }
-<0> "else"                    { produceSymbol Tok_Else       }
-<0> "extends"                 { produceSymbol Tok_Extends    }
-<0> "false"                   { produceSymbol Tok_False      }
-<0> "final"                   { produceSymbol Tok_Final      }
-<0> "finally"                 { produceSymbol Tok_Finally    }
-<0> "for"                     { produceSymbol Tok_For        }
-<0> "forSome"                 { produceSymbol Tok_ForSome    }
-<0> "if"                      { produceSymbol Tok_If         }
-<0> "implicit"                { produceSymbol Tok_Implicit   }
-<0> "import"                  { produceSymbol Tok_Import     }
-<0> "lazy"                    { produceSymbol Tok_Lazy       }
-<0> "match"                   { produceSymbol Tok_Match      }
-<0> "new"                     { produceSymbol Tok_New        }
-<0> "null"                    { produceSymbol Tok_Null       }
-<0> "object"                  { produceSymbol Tok_Object     }
-<0> "override"                { produceSymbol Tok_Override   }
-<0> "package"                 { produceSymbol Tok_Package    }
-<0> "private"                 { produceSymbol Tok_Private    }
-<0> "protected"               { produceSymbol Tok_Protected  }
-<0> "return"                  { produceSymbol Tok_Return     }
-<0> "sealed"                  { produceSymbol Tok_Sealed     }
-<0> "super"                   { produceSymbol Tok_Super      }
-<0> "this"                    { produceSymbol Tok_This       }
-<0> "throw"                   { produceSymbol Tok_Throw      }
-<0> "trait"                   { produceSymbol Tok_Trait      }
-<0> "try"                     { produceSymbol Tok_Try        }
-<0> "true"                    { produceSymbol Tok_True       }
-<0> "type"                    { produceSymbol Tok_Type       }
-<0> "val"                     { produceSymbol Tok_Val        }
-<0> "var"                     { produceSymbol Tok_Var        }
-<0> "while"                   { produceSymbol Tok_While      }
-<0> "with"                    { produceSymbol Tok_With       }
-<0> "yield"                   { produceSymbol Tok_Yield      }
+<0> "abstract"                { produceSymbol Tok_Abstract      }
+<0> "case"                    { produceSymbol Tok_Case          }
+<0> "catch"                   { produceSymbol Tok_Catch         }
+<0> "class"                   { produceSymbol Tok_Class         }
+<0> "def"                     { produceSymbol Tok_Def           }
+<0> "do"                      { produceSymbol Tok_Do            }
+<0> "else"                    { produceSymbol Tok_Else          }
+<0> "extends"                 { produceSymbol Tok_Extends       }
+<0> "false"                   { produceSymbol Tok_False         }
+<0> "final"                   { produceSymbol Tok_Final         }
+<0> "finally"                 { produceSymbol Tok_Finally       }
+<0> "for"                     { produceSymbol Tok_For           }
+<0> "forSome"                 { produceSymbol Tok_ForSome       }
+<0> "if"                      { produceSymbol Tok_If            }
+<0> "implicit"                { produceSymbol Tok_Implicit      }
+<0> "import"                  { produceSymbol Tok_Import        }
+<0> "lazy"                    { produceSymbol Tok_Lazy          }
+<0> "match"                   { produceSymbol Tok_Match         }
+<0> "new"                     { produceSymbol Tok_New           }
+<0> "null"                    { produceSymbol Tok_Null          }
+<0> "object"                  { produceSymbol Tok_Object        }
+<0> "override"                { produceSymbol Tok_Override      }
+<0> "package"                 { produceSymbol Tok_Package       }
+<0> "private"                 { produceSymbol Tok_Private       }
+<0> "protected"               { produceSymbol Tok_Protected     }
+<0> "return"                  { produceSymbol Tok_Return        }
+<0> "sealed"                  { produceSymbol Tok_Sealed        }
+<0> "super"                   { produceSymbol Tok_Super         }
+<0> "this"                    { produceSymbol Tok_This          }
+<0> "throw"                   { produceSymbol Tok_Throw         }
+<0> "trait"                   { produceSymbol Tok_Trait         }
+<0> "try"                     { produceSymbol Tok_Try           }
+<0> "true"                    { produceSymbol Tok_True          }
+<0> "type"                    { produceSymbol Tok_Type          }
+<0> "val"                     { produceSymbol Tok_Val           }
+<0> "var"                     { produceSymbol Tok_Var           }
+<0> "while"                   { produceSymbol Tok_While         }
+<0> "with"                    { produceSymbol Tok_With          }
+<0> "yield"                   { produceSymbol Tok_Yield         }
 
 <0> @varid                    { produceToken Tok_VarId   $ ByteString.take }
 <0> @plainid                  { produceToken Tok_PlainId $ ByteString.take }

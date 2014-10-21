@@ -3,6 +3,7 @@
 module Main where
 
 import qualified Data.ByteString.Char8 as B
+import           Data.Monoid ((<>))
 import           System.Console.ANSI
 import           System.Environment (getArgs)
 
@@ -37,13 +38,10 @@ printColor :: Token -> IO ()
 printColor tok = do
     setSGR . sgr . highlight $ tok
     B.putStr (lexeme tok)
-
-    case tok of
-        Tok_NewLine -> B.putStrLn ""
-        _           -> B.putStr " "
   where
-    lexeme Tok_NewLine = "<\\n>"
-    lexeme t           = tokenLexeme t
+    lexeme (Tok_NewLine One)  = "<nl>\n"
+    lexeme (Tok_NewLine Many) = "<nl> <nl>\n"
+    lexeme t                  = tokenLexeme t <> " "
 
 ------------------------------------------------------------------------
 
@@ -74,6 +72,7 @@ sgr h = case h of
 
 highlight :: Token -> Highlight
 highlight tok = case tok of
+  Tok_NewLine  _ -> NewLine
   Tok_VarId    _ -> VarId
   Tok_PlainId  _ -> PlainId
   Tok_StringId _ -> StringId
@@ -141,4 +140,3 @@ highlight tok = case tok of
   Tok_UpperBound -> ReservedOp
   Tok_Projection -> ReservedOp
   Tok_Annotation -> ReservedOp
-  Tok_NewLine    -> NewLine
