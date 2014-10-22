@@ -220,17 +220,31 @@ ids :: { Contextual Ids }:
 
 
 path :: { Contextual Path }:
-    stable_id                               { Path_StableId $1    <\$ $1 }
-  | id "." "this"                           { Path_This (Just $1) <\$ $1 }
-  |        "this"                           { Path_This (Nothing) <\$ $1 }
+    stable_id                               { Path_StableId $1 <\$ $1 }
+  | stable_id_prefix_opt "this"                           { Path_This (Just $1) <\$ $1 }
 
 stable_id :: { Contextual StableId }:
-    id                                      { StableId_Id $1 <\$ $1 }
-  | path                           "." id   { StableId_Path $1 $3 :@@ between $1 $3 }
-  | id "." "super" class_qualifier "." id   { StableId_Super (Just $1) (Just $4) $6 :@@ between $1 $6 }
-  | id "." "super"                 "." id   { StableId_Super (Just $1) (Nothing) $5 :@@ between $1 $5 }
-  |        "super" class_qualifier "." id   { StableId_Super (Nothing) (Just $2) $4 :@@ between $1 $4 }
-  |        "super"                 "." id   { StableId_Super (Nothing) (Nothing) $3 :@@ between $1 $3 }
+    id stable_id_suffix_opt                 { error "TODO" }
+  | stable_id_prefix_opt "this" stable_id_suffix          { error "TODO" }
+  | stable_id_prefix_opt "super" class_qualifier_opt stable_id_suffix { error "TODO" }
+
+stable_id_prefix_opt:
+    stable_id_prefix                        { ... }
+  | {- empty -}                             { ... }
+
+stable_id_prefix:
+    id "."                                  { ... }
+
+stable_id_suffix_opt:
+    stable_id_suffix                        { ... }
+  | {- empty -}                             { ... }
+
+stable_id_suffix:
+    "." id stable_id_suffix_opt             { ... }
+
+class_qualifier_opt :: { Maybe (Contextual ClassQualifier) }:
+    class_qualifier                         { Just $1 }
+  | {- empty -}                             { Nothing }
 
 class_qualifier :: { Contextual ClassQualifier }:
     "[" id "]"                              { ClassQualifier <\$> $2 }
