@@ -56,6 +56,7 @@ data Highlight = VarId
                | PlainId
                | StringId
                | Symbol
+               | Operator
                | Number
                | String
                | Bracket
@@ -69,6 +70,7 @@ sgr h = case h of
     PlainId       -> d Magenta
     StringId      -> d Magenta
     Symbol        -> v Yellow
+    Operator      -> v White
     Number        -> v Red
     String        -> d Green
     Bracket       -> d Yellow
@@ -82,6 +84,7 @@ sgr h = case h of
 highlight :: Token -> Highlight
 highlight tok = case tok of
   Tok_NewLine  _ -> NewLine
+  Tok_Op       _ -> Operator
   Tok_VarId    _ -> VarId
   Tok_PlainId  _ -> PlainId
   Tok_StringId _ -> StringId

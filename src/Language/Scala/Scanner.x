@@ -47,7 +47,7 @@ $hexit                        = [ 0-9 a-f A-F ]
 @op                           = $opchar+
 @idrest                       = (@letter | $digit)* (_ @op)?
 @varid                        = $lower @idrest
-@plainid                      = $upper @idrest | @varid | @op
+@plainid                      = $upper @idrest
 
 @symbol_literal               = \' @plainid
 
@@ -137,14 +137,14 @@ tokens :-
 <0> "with"                    { produceSymbol Tok_With          }
 <0> "yield"                   { produceSymbol Tok_Yield         }
 
+<0> @op                       { produceToken Tok_Op      $ B.take }
 <0> @varid                    { produceToken Tok_VarId   $ B.take }
 <0> @plainid                  { produceToken Tok_PlainId $ B.take }
-
-<0> @symbol_literal           { produceToken id $ readSymbol        }
 
 <0> @decimal_literal          { produceToken id $ readDecimal       }
 <0> @hexadecimal_literal      { produceToken id $ readHexadecimal   }
 <0> @rational_literal         { produceToken id $ readFloatingPoint }
+<0> @symbol_literal           { produceToken id $ readSymbol        }
 
 --
 -- Character literals

@@ -97,11 +97,12 @@ import           Language.Scala.Util
   "#"                   { Right ($$ @ (Tok_Projection     :@@ _)) }
   "@"                   { Right ($$ @ (Tok_Annotation     :@@ _)) }
 
-  "-"                   { Right ($$ @ (Tok_PlainId    "-" :@@ _)) }
-  "+"                   { Right ($$ @ (Tok_PlainId    "+" :@@ _)) }
-  "~"                   { Right ($$ @ (Tok_PlainId    "~" :@@ _)) }
-  "!"                   { Right ($$ @ (Tok_PlainId    "!" :@@ _)) }
+  "-"                   { Right ($$ @ (Tok_Op         "-" :@@ _)) }
+  "+"                   { Right ($$ @ (Tok_Op         "+" :@@ _)) }
+  "~"                   { Right ($$ @ (Tok_Op         "~" :@@ _)) }
+  "!"                   { Right ($$ @ (Tok_Op         "!" :@@ _)) }
 
+  op_token              { Right ($$ @ (Tok_Op           _ :@@ _)) }
   varid_token           { Right ($$ @ (Tok_VarId        _ :@@ _)) }
   plainid_token         { Right ($$ @ (Tok_PlainId      _ :@@ _)) }
   stringid_token        { Right ($$ @ (Tok_StringId     _ :@@ _)) }
@@ -121,33 +122,33 @@ import           Language.Scala.Util
 --
 
 literal :: { Contextual Literal }:
-    signed_int_literal                                  { IntLiteral              <\$> $1 }
-  | signed_long_literal                                 { LongLiteral             <\$> $1 }
-  | signed_float_literal                                { (uncurry FloatLiteral)  <\$> $1 }
-  | signed_double_literal                               { (uncurry DoubleLiteral) <\$> $1 }
-  | boolean_literal                                     { BooleanLiteral          <\$> $1 }
-  | character_literal                                   { CharacterLiteral        <\$> $1 }
-  | string_literal                                      { StringLiteral           <\$> $1 }
-  | symbol_literal                                      { SymbolLiteral           <\$> $1 }
-  | "null"                                              { NullLiteral :@@ context $1      }
+    signed_int_literal                      { Lit_Int              <\$> $1 }
+  | signed_long_literal                     { Lit_Long             <\$> $1 }
+  | signed_float_literal                    { (uncurry Lit_Float)  <\$> $1 }
+  | signed_double_literal                   { (uncurry Lit_Double) <\$> $1 }
+  | boolean_literal                         { Lit_Boolean          <\$> $1 }
+  | character_literal                       { Lit_Character        <\$> $1 }
+  | string_literal                          { Lit_String           <\$> $1 }
+  | symbol_literal                          { Lit_Symbol           <\$> $1 }
+  | "null"                                  { Lit_Null :@@ context $1      }
 
 --
 -- integer literals
 --
 
 signed_int_literal :: { Contextual Integer }:
-    int_literal                                         { $1 }
-  | "-" int_literal                                     { context $1 <@@ (negate <\$> $2) }
+    int_literal                             { $1 }
+  | "-" int_literal                         { context $1 <@@ (negate <\$> $2) }
 
 int_literal :: { Contextual Integer }:
-    int_token                                           { integerTokenValue <\$> $1 }
+    int_token                               { integerTokenValue <\$> $1 }
 
 signed_long_literal :: { Contextual Integer }:
-    long_literal                                        { $1 }
-  | "-" long_literal                                    { context $1 <@@ (negate <\$> $2) }
+    long_literal                            { $1 }
+  | "-" long_literal                        { context $1 <@@ (negate <\$> $2) }
 
 long_literal :: { Contextual Integer }:
-    long_token                                          { integerTokenValue <\$> $1 }
+    long_token                              { integerTokenValue <\$> $1 }
 
 
 --
@@ -155,39 +156,87 @@ long_literal :: { Contextual Integer }:
 --
 
 signed_float_literal :: { Contextual (Integer, Integer) }:
-    float_literal                                       { $1 }
-  | "-" float_literal                                   { context $1 <@@ (negateFloat <\$> $2) }
+    float_literal                           { $1 }
+  | "-" float_literal                       { context $1 <@@ (negateFloat <\$> $2) }
 
 float_literal :: { Contextual (Integer, Integer) }:
-    float_token                                         { floatTokenValue <\$> $1 }
+    float_token                             { floatTokenValue <\$> $1 }
 
 signed_double_literal :: { Contextual (Integer, Integer) }:
-    double_literal                                      { $1 }
-  | "-" double_literal                                  { context $1 <@@ (negateFloat <\$> $2) }
+    double_literal                          { $1 }
+  | "-" double_literal                      { context $1 <@@ (negateFloat <\$> $2) }
 
 double_literal :: { Contextual (Integer, Integer) }:
-    double_token                                        { floatTokenValue <\$> $1 }
+    double_token                            { floatTokenValue <\$> $1 }
 
 --
 -- boolean literals
 --
 
 boolean_literal :: { Contextual Bool }:
-    "true"                                              { True  :@@ context $1 }
-  | "false"                                             { False :@@ context $1 }
+    "true"                                  { True  :@@ context $1 }
+  | "false"                                 { False :@@ context $1 }
 
 --
 -- string literals
 --
 
 character_literal :: { Contextual Char }:
-    char_token                                          { charTokenValue <\$> $1 }
+    char_token                              { charTokenValue <\$> $1 }
 
 string_literal :: { Contextual ByteString }:
-    string_token                                        { stringTokenValue <\$> $1 }
+    string_token                            { stringTokenValue <\$> $1 }
 
 symbol_literal :: { Contextual ByteString }:
-    symbol_token                                        { stringTokenValue <\$> $1 }
+    symbol_token                            { stringTokenValue <\$> $1 }
+
+--
+-- identifiers
+--
+
+op :: { Contextual Ident }:
+    op_token                                { identTokenValue <\$> $1 }
+
+varid :: { Contextual Ident }:
+    varid_token                             { identTokenValue <\$> $1 }
+
+plainid :: { Contextual Ident }:
+    plainid_token                           { identTokenValue <\$> $1 }
+  | varid                                   { $1 }
+  | op                                      { $1 }
+
+id :: { Contextual Ident }:
+    plainid                                 { $1 }
+  | stringid_token                          { identTokenValue <\$> $1 }
+
+
+qual_id :: { Contextual QualId }:
+    id                                      { PHead $1 :@@ between $1 $1 }
+  | qual_id "." id                          { (value $1 ::: $3) :@@ between $1 $3 }
+
+ids :: { Contextual Ids }:
+    id                                      { PHead $1 :@@ between $1 $1 }
+  | qual_id "," id                          { (value $1 ::: $3) :@@ between $1 $3 }
+
+
+path :: { Contextual Path }:
+    stable_id                               { Path_StableId $1    <\$ $1 }
+  | id "." "this"                           { Path_This (Just $1) <\$ $1 }
+  |        "this"                           { Path_This (Nothing) <\$ $1 }
+
+stable_id :: { Contextual StableId }:
+    id                                      { StableId_Id $1 <\$ $1 }
+  | path                           "." id   { StableId_Path $1 $3 :@@ between $1 $3 }
+  | id "." "super" class_qualifier "." id   { StableId_Super (Just $1) (Just $4) $6 :@@ between $1 $6 }
+  | id "." "super"                 "." id   { StableId_Super (Just $1) (Nothing) $5 :@@ between $1 $5 }
+  |        "super" class_qualifier "." id   { StableId_Super (Nothing) (Just $2) $4 :@@ between $1 $4 }
+  |        "super"                 "." id   { StableId_Super (Nothing) (Nothing) $3 :@@ between $1 $3 }
+
+class_qualifier :: { Contextual ClassQualifier }:
+    "[" id "]"                              { ClassQualifier <\$> $2 }
+
+compilation_unit :: { Contextual Path }:
+    path { $1 }
 
 {
 

@@ -58,6 +58,7 @@ data Token =
 
 -- Identifiers:
 
+    | Tok_Op       !Ident
     | Tok_VarId    !Ident
     | Tok_PlainId  !Ident
     | Tok_StringId !Ident
@@ -162,8 +163,9 @@ stringTokenValue (Tok_Symbol x)   = x
 stringTokenValue t = error ("stringTokenValue: not a string token: " <> show t)
 
 identTokenValue :: Token -> Ident
-identTokenValue (Tok_VarId x)    = x
-identTokenValue (Tok_PlainId x)  = x
+identTokenValue (Tok_Op       x) = x
+identTokenValue (Tok_VarId    x) = x
+identTokenValue (Tok_PlainId  x) = x
 identTokenValue (Tok_StringId x) = x
 identTokenValue t = error ("identTokenValue: not an identifier token: " <> show t)
 
@@ -180,16 +182,17 @@ tokenLexeme :: Token -> ByteString
 tokenLexeme t = case t of
   Tok_NewLine One  -> fromString "newline"
   Tok_NewLine Many -> fromString "newlines"
-  Tok_VarId    x   -> x
-  Tok_PlainId  x   -> x
-  Tok_StringId x   -> quotedString '`' x
-  Tok_Symbol   x   -> fromString "\'" <> x
-  Tok_Int      x   -> fromString (shows x "")
-  Tok_Long     x   -> fromString (shows x "L")
-  Tok_Float  m e   -> fromString (uncurry showScientific (normalisedScientific m e) "F")
-  Tok_Double m e   -> fromString (uncurry showScientific (normalisedScientific m e) "")
-  Tok_Char     x   -> quotedString '\'' (C.pack [x])
-  Tok_String   x   -> quotedString '"' x
+  Tok_Op         x -> x
+  Tok_VarId      x -> x
+  Tok_PlainId    x -> x
+  Tok_StringId   x -> quotedString '`' x
+  Tok_Symbol     x -> fromString "\'" <> x
+  Tok_Int        x -> fromString (shows x "")
+  Tok_Long       x -> fromString (shows x "L")
+  Tok_Float    m e -> fromString (uncurry showScientific (normalisedScientific m e) "F")
+  Tok_Double   m e -> fromString (uncurry showScientific (normalisedScientific m e) "")
+  Tok_Char       x -> quotedString '\'' (C.pack [x])
+  Tok_String     x -> quotedString '"' x
   Tok_Abstract     -> fromString "abstract"
   Tok_Case         -> fromString "case"
   Tok_Catch        -> fromString "catch"
