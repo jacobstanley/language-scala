@@ -16,6 +16,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as UTF8
 import           Data.Either
 import           Data.Functor
+import           Data.Maybe
 import           Data.String
 
 import           Language.Scala.Context
@@ -106,7 +107,7 @@ import           Language.Scala.Util
   varid_token           { Right ($$ @ (Tok_VarId        _ :@@ _)) }
   plainid_token         { Right ($$ @ (Tok_PlainId      _ :@@ _)) }
   stringid_token        { Right ($$ @ (Tok_StringId     _ :@@ _)) }
-  
+
   int_token             { Right ($$ @ (Tok_Int          _ :@@ _)) }
   long_token            { Right ($$ @ (Tok_Long         _ :@@ _)) }
   float_token           { Right ($$ @ (Tok_Float      _ _ :@@ _)) }
@@ -216,31 +217,31 @@ qual_id :: { Contextual QualId }:
 
 ids :: { Contextual Ids }:
     id                                      { PHead $1 :@@ between $1 $1 }
-  | qual_id "," id                          { (value $1 ::: $3) :@@ between $1 $3 }
+  | ids "," id                              { (value $1 ::: $3) :@@ between $1 $3 }
 
 
 path :: { Contextual Path }:
     stable_id                               { Path_StableId $1 <\$ $1 }
-  | stable_id_prefix_opt "this"                           { Path_This (Just $1) <\$ $1 }
+  | id_prefix_opt "this"                    { $1 <?? (Path_This $1 <\$ $2) }
 
 stable_id :: { Contextual StableId }:
-    id stable_id_suffix_opt                 { error "TODO" }
-  | stable_id_prefix_opt "this" stable_id_suffix          { error "TODO" }
-  | stable_id_prefix_opt "super" class_qualifier_opt stable_id_suffix { error "TODO" }
+    id stable_id_suffix_opt                                    { error "TODO" }
+  | id_prefix_opt "this" stable_id_suffix                      { error "TODO" }
+  | id_prefix_opt "super" class_qualifier_opt stable_id_suffix { error "TODO" }
 
-stable_id_prefix_opt:
-    stable_id_prefix                        { ... }
-  | {- empty -}                             { ... }
+id_prefix_opt :: { Maybe (Contextual Ident) }:
+    id_prefix                               { Just $1 }
+  | {- empty -}                             { Nothing }
 
-stable_id_prefix:
-    id "."                                  { ... }
+id_prefix :: { Contextual Ident }:
+    id "."                                  { value $1 :@@ between $1 $2 }
 
-stable_id_suffix_opt:
-    stable_id_suffix                        { ... }
-  | {- empty -}                             { ... }
+stable_id_suffix_opt :: { Maybe (Contextual (QList (Contextual Ident))) }:
+    stable_id_suffix                        { Just $1 }
+  | {- empty -}                             { Nothing }
 
-stable_id_suffix:
-    "." id stable_id_suffix_opt             { ... }
+stable_id_suffix :: { Contextual (QList (Contextual Ident)) }:
+    "." id stable_id_suffix_opt             { context $1 <@@ maybe (PHead $2 <\$ $2) (fmap (::: $2)) $3 }
 
 class_qualifier_opt :: { Maybe (Contextual ClassQualifier) }:
     class_qualifier                         { Just $1 }

@@ -16,6 +16,8 @@ module Language.Scala.Context
     , leadingContext
     , trailingContext
     , between
+    , (<??)
+    , (??>)
     , (<@@)
     , (@@>)
     ) where
@@ -30,7 +32,7 @@ import Language.Scala.Util
 
 ------------------------------------------------------------------------
 
-infixl 8 :@@, <@@, @@>
+infixl 8 :@@, <@@, @@>, <??, ??>
 
 ------------------------------------------------------------------------
 
@@ -106,6 +108,14 @@ trailingContext = _trailingContext . context
 between :: (HasContext a, HasContext b) => a -> b -> Context
 between x y = Context { _leadingContext  = leadingContext x
                       , _trailingContext = trailingContext y }
+
+(<??) :: (HasContext a, HasContext b) => Maybe a -> b -> b
+(Nothing) <?? y = y
+(Just  x) <?? y = context x <@@ y
+
+(??>) :: (HasContext a, HasContext b) => a -> Maybe b -> a
+x ??> (Nothing) = x
+x ??> (Just  y) = x @@> context y
 
 (<@@) :: HasContext a => Context -> a -> a
 c <@@ x = cmap (\c' -> c' { _leadingContext = leadingContext c }) x
