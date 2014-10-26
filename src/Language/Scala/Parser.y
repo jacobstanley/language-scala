@@ -100,8 +100,10 @@ import           Language.Scala.Util
 
   "-"                   { Right ($$ @ (Tok_Op         "-" :@@ _)) }
   "+"                   { Right ($$ @ (Tok_Op         "+" :@@ _)) }
+  "*"                   { Right ($$ @ (Tok_Op         "*" :@@ _)) }
   "~"                   { Right ($$ @ (Tok_Op         "~" :@@ _)) }
   "!"                   { Right ($$ @ (Tok_Op         "!" :@@ _)) }
+  "|"                   { Right ($$ @ (Tok_Op         "|" :@@ _)) }
 
   op_token              { Right ($$ @ (Tok_Op           _ :@@ _)) }
   varid_token           { Right ($$ @ (Tok_VarId        _ :@@ _)) }
@@ -117,6 +119,28 @@ import           Language.Scala.Util
   symbol_token          { Right ($$ @ (Tok_Symbol       _ :@@ _)) }
 
 %%
+
+--
+-- semi-colon / newlines
+--
+
+semi_opt :: { Maybe (Contextual ()) }:
+    semi                                    { Just $1 }
+  | {- empty -}                             { Nothing }
+
+semi :: { Contextual () }:
+    ";"                                     { pure () <\$ $1 }
+  | nl_token                                { pure () <\$ $1 }
+  | nls_token                               { pure () <\$ $1 }
+
+nl_opt :: { Maybe (Contextual ()) }:
+    nl_token                                { Just (pure () <\$ $1) }
+  | {- empty -}                             { Nothing               }
+
+nls :: { Maybe (Contextual ()) }:
+    nl_token                                { Just (pure () <\$ $1) }
+  | nls_token                               { Just (pure () <\$ $1) }
+  | {- empty -}                             { Nothing               }
 
 --
 -- literals
@@ -252,6 +276,467 @@ class_qualifier_opt :: { Maybe (Contextual ClassQualifier) }:
 
 class_qualifier :: { Contextual ClassQualifier }:
     "[" id "]"                              { ClassQualifier <\$> $2 }
+
+--
+-- type identifiers
+--
+
+type :
+    function_arg_types "=>" type        { undefined }
+  | infix_type existential_clause_opt   { undefined }
+
+function_arg_types :
+    infix_type                          { undefined }
+  | "(" param_types_opt ")"             { undefined }
+
+param_types_opt :
+    param_types                         { undefined }
+  | {- empty -}                         { undefined }
+
+param_types :
+    param_type                          { undefined }
+  | param_types "," param_type          { undefined }
+
+existential_clause_opt :
+    existential_clause                  { undefined }
+  | {- empty -}                         { undefined }
+
+existential_clause :
+    "forSome" "{" existential_dcls "}"  { undefined }
+
+existential_dcls :
+    existential_dcl                       { undefined }
+  | existential_dcls semi existential_dcl { undefined }
+
+existential_dcl :
+    "type" type_dcl                     { undefined }
+  | "val" val_dcl                       { undefined }
+
+infix_type :
+    compound_type                       { undefined }
+  | infix_type id nl_opt compound_type  { undefined }
+
+compound_type :
+    annot_types refinement_opt          { undefined }
+  | refinement                          { undefined }
+
+annot_types :
+    annot_type                          { undefined }
+  | annot_types "with" annot_type       { undefined }
+
+annot_type :
+    simple_type                         { undefined }
+  | annot_type annotation               { undefined }
+
+simple_type :
+    simple_type type_args               { undefined }
+  | simple_type "#" id                  { undefined }
+  | stable_id                           { undefined }
+  | path "." "type"                     { undefined }
+  | "(" types ")"                       { undefined }
+
+type_args :
+    "[" types "]"                       { undefined }
+
+types :
+    type                                { undefined }
+  | types "," type                      { undefined }
+
+refinement_opt :
+    refinement                          { undefined }
+  | {- empty -}                         { undefined }
+
+refinement :
+    nl_opt "{" refinement_stats "}"     { undefined }
+
+refinement_stats :
+    refinement_stat                       { undefined }
+  | refinement_stats semi refinement_stat { undefined }
+
+refinement_stat :
+    dcl                                 { undefined }
+  | "type" type_def                     { undefined }
+  | {- empty -}                         { undefined }
+
+type_pat :
+    type                                { undefined }
+
+ascription_opt :
+   ascription                           { undefined }
+ | {- empty -}                          { undefined }
+
+ascription :
+    ":" infix_type                      { undefined }
+  | ":" annotations                     { undefined }
+  | ":" "_" "*"                         { undefined }
+
+--
+-- expressions
+--
+
+exprs_opt :
+    exprs                               { undefined }
+  | {- empty -}                         { undefined }
+
+exprs_comma_opt :
+    exprs ","                           { undefined }
+  | {- empty -}                         { undefined }
+
+exprs :
+    expr                                { undefined }
+  | exprs "," expr                      { undefined }
+
+expr_opt :
+    expr                                { undefined }
+  | {- empty -}                         { undefined }
+
+expr :
+         bindings "=>" expr             { undefined }
+  | "implicit" id "=>" expr             { undefined }
+  |           "_" "=>" expr             { undefined }
+  | expr1                               { undefined }
+
+expr1 :
+    "if"    "(" expr  ")" nls expr else_expr_opt        { undefined }
+  | "while" "(" expr  ")" nls expr                      { undefined }
+  | "try"   "{" block "}" catch_opt finally_opt         { undefined }
+  | "do" expr semi_opt "while" "(" expr ")"             { undefined }
+  | "for" "(" enumerators ")" nls "yield" expr          { undefined }
+  | "for" "{" enumerators "}" nls "yield" expr          { undefined }
+  | "throw" expr                                        { undefined }
+  | "return" expr_opt                                   { undefined }
+  | simple_expr_prefix_opt id "=" expr                  { undefined }
+  | simple_expr1 argument_exprs "=" expr                { undefined }
+  | postfix_expr ascription_opt                         { undefined }
+  | postfix_expr "match" "{" case_clauses "}"           { undefined }
+
+else_expr_opt :
+    else_expr                           { undefined }
+  | {- empty -}                         { undefined }
+
+else_expr :
+    semi_opt "else" expr                { undefined }
+
+catch_opt :
+    catch                               { undefined }
+  | {- empty -}                         { undefined }
+
+catch :
+    "catch" "{" case_clauses "}"        { undefined }
+
+finally_opt :
+    finally                             { undefined }
+  | {- empty -}                         { undefined }
+
+finally :
+    "finally" expr                      { undefined }
+
+postfix_expr :
+    infix_expr postfix_expr_id_opt      { undefined }
+
+postfix_expr_id_opt :
+    id nl_opt                           { undefined }
+  | {- empty -}                         { undefined }
+
+infix_expr :
+    prefix_expr                         { undefined }
+  | infix_expr id nl_opt infix_expr     { undefined }
+
+prefix_expr :
+    "-" simple_expr                     { undefined }
+  | "+" simple_expr                     { undefined }
+  | "~" simple_expr                     { undefined }
+  | "!" simple_expr                     { undefined }
+
+simple_expr :
+    "new" class_template                { undefined }
+  | "new" template_body                 { undefined }
+  | block_expr                          { undefined }
+  | simple_expr1 underscore_opt         { undefined }
+
+underscore_opt :
+    "_"                                 { undefined }
+  | {- empty -}                         { undefined }
+
+simple_expr_prefix_opt :
+    simple_expr_prefix                  { undefined }
+  | {- empty -}                         { undefined }
+
+simple_expr_prefix :
+    simple_expr "."                     { undefined }
+
+simple_expr1 :
+    literal                             { undefined }
+  | path                                { undefined }
+  | "_"                                 { undefined }
+  | "(" exprs_opt ")"                   { undefined }
+  | simple_expr "." id                  { undefined }
+  | simple_expr type_args               { undefined }
+  | simple_expr1 argument_exprs         { undefined }
+
+argument_exprs :
+    "(" exprs_opt ")"                                   { undefined }
+  | "(" exprs_comma_opt postfix_expr ":" "_" "*" ")"    { undefined }
+  | nl_opt block_expr                                   { undefined }
+
+--
+-- blocks
+--
+
+block_expr :
+    "{" case_clauses "}"                { undefined }
+  | "{" block "}"                       { undefined }
+
+block :
+    block_stats result_expr_opt         { undefined }
+
+block_stats :
+    block_stats block_stat semi         { undefined }
+  | {- empty -}                         { undefined }
+
+block_stat :
+    "import"                                    { undefined }
+  | annotations "implicit" def                  { undefined }
+  | annotations "lazy"     def                  { undefined }
+  | annotations local_modifier_opt tmpl_def     { undefined }
+  | expr1                                       { undefined }
+
+--
+-- patterns
+--
+
+result_expr :
+    expr1                                          { undefined }
+  |                          bindings "=>" block   { undefined }
+  | implicit_opt id ":" compound_type "=>" block   { undefined }
+  |             "_" ":" compound_type "=>" block   { undefined }
+
+implicit_opt :
+    "implicit"                          { undefined }
+  | {- empty -}                         { undefined }
+
+enumerators :
+    generator enumerators_suffix        { undefined }
+
+enumerators_suffix :
+    enumerators_suffix semi enumerator  { undefined }
+  | {- empty -}                         { undefined }
+
+enumerator :
+    generator                           { undefined }
+  | guard                               { undefined }
+  | pattern1 "=" expr                   { undefined }
+
+generator :
+    pattern1 "<-" expr guard_opt        { undefined }
+
+case_clauses :
+    case_clause                         { undefined }
+  | case_clauses case_clause            { undefined }
+
+case_clause :
+    "case" pattern guard_opt "=>" block { undefined }
+
+guard_opt :
+    guard                               { undefined }
+  | {- empty -}                         { undefined }
+
+guard :
+    "if" postfix_expr                   { undefined }
+
+pattern :
+    pattern1                            { undefined }
+  | pattern "|" pattern1                { undefined }
+
+pattern1 :
+    varid ":" type_pat                  { undefined }
+  |   "_" ":" type_pat                  { undefined }
+  | pattern2                            { undefined }
+
+pattern2 :
+    varid at_pattern3_opt               { undefined }
+  | pattern3                            { undefined }
+
+at_pattern3_opt :
+    at_pattern3                         { undefined }
+  | {- empty -}                         { undefined }
+
+at_pattern3 :
+    "@" pattern3                        { undefined }
+
+pattern3 :
+    simple_pattern                      { undefined }
+  | pattern3 id nl_opt simple_pattern   { undefined }
+
+simple_pattern :
+    "_"                                                         { undefined }
+  | varid                                                       { undefined }
+  | literal                                                     { undefined }
+  | stable_id                                                   { undefined }
+  | stable_id "(" patterns_opt ")"                              { undefined }
+  | stable_id "(" patterns_comma_opt varid_at_opt "_" "*" ")"   { undefined }
+  | "(" patterns_opt ")"                                        { undefined }
+
+varid_at_opt :
+    varid "@"                           { undefined }
+  | {- empty -}                         { undefined }
+
+patterns_opt :
+    patterns                            { undefined }
+  | {- empty -}                         { undefined }
+
+patterns_comma_opt :
+    patterns ","                        { undefined }
+  | {- empty -}                         { undefined }
+
+patterns :
+    pattern                             { undefined }
+  | patterns "," pattern                { undefined }
+  | "_" "*"                             { undefined }
+
+--
+-- parameters
+--
+
+type_param_clause_opt :
+    type_param_clause                   { undefined }
+  | {- empty -}                         { undefined }
+
+type_param_clause :
+    "[" variant_type_params "]"         { undefined }
+
+variant_type_params :
+    variant_type_param                              { undefined }
+  | variant_type_params "," variant_type_param      { undefined }
+
+variant_type_param :
+    annotations variant_opt type_param  { undefined }
+
+variant_opt :
+    "+"                                 { undefined }
+  | "-"                                 { undefined }
+  | {- empty -}                         { undefined }
+
+fun_type_param_clause_opt :
+    fun_type_param_clause               { undefined }
+  | {- empty -}                         { undefined }
+
+fun_type_param_clause :
+    "[" type_params "]"                 { undefined }
+
+type_params :
+    type_param                          { undefined }
+  | type_params "," type_param          { undefined }
+
+type_param :
+    id_wild type_param_clause_opt
+            upper_bound_opt
+            lower_bound_opt
+            view_bounds
+            type_param_suffix           { undefined }
+
+id_wild :
+    id                                  { undefined }
+ | "_"                                  { undefined }
+
+type_param_suffix :
+    type_param_suffix ":" type          { undefined }
+  | {- empty -}                         { undefined }
+
+param_clauses :
+    param_clause_many param_clauses_suffix_opt      { undefined }
+
+param_clauses_suffix_opt :
+    param_clause_suffix                 { undefined }
+  | {- empty -}                         { undefined }
+
+param_clauses_suffix :
+    nl_opt "(" "implicit" params ")"    { undefined }
+
+param_clause_many :
+    param_clause                        { undefined }
+  | param_clause_many param_clause      { undefined }
+
+param_clause :
+    nl_opt "(" params_opt ")"           { undefined }
+
+params_opt :
+    params                              { undefined }
+  | {- empty -}                         { undefined }
+
+params :
+    param                               { undefined }
+  | params "," param                    { undefined }
+
+param :
+    annotations id param_type_opt default_opt  { undefined }
+
+param_type_opt :
+    ":" param_type                      { undefined }
+  | {- empty -}                         { undefined }
+
+default_opt :
+    "=" expr                            { undefined }
+  | {- empty -}                         { undefined }
+
+param_type :
+    type                                { undefined }
+  | "=>" type                           { undefined }
+  | type "*"                            { undefined }
+
+--
+-- type bounds
+--
+
+lower_bound_opt :
+    lower_bound                         { undefined }
+  | {- empty -}                         { undefined }
+
+lower_bound :
+    ">:" type                           { undefined }
+
+upper_bound_opt :
+    upper_bound                         { undefined }
+  | {- empty -}                         { undefined }
+
+upper_bound :
+    "<:" type                           { undefined }
+
+view_bounds :
+    view_bound                          { undefined }
+  | view_bounds view_bound              { undefined }
+
+view_bound :
+    "<%" type                           { undefined }
+
+--
+-- declarations
+--
+
+dcl :
+    "val" val_dcl                       { undefined }
+  | "var" var_dcl                       { undefined }
+  | "def" fun_dcl                       { undefined }
+  | "type" nls type_dcl                 { undefined }
+
+val_dcl :
+    ids ":" type                        { undefined }
+
+var_dcl :
+    ids ":" type                        { undefined }
+
+fun_dcl :
+    fun_sig fun_dcl_suffix_opt          { undefined }
+
+fun_sig :
+    id fun_type_param_clause_opt param_clauses { undefined }
+
+type_dcl :
+    id type_param_clause_opt upper_bound_opt lower_bound_opt { undefined }
+
+--
+-- top level
+--
 
 compilation_unit :: { Contextual Path }:
     path { $1 }
