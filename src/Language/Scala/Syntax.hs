@@ -36,14 +36,14 @@ data Path =
   deriving (Eq, Ord, Show)
 
 data StableId =
-      StableId_Id    (Contextual Ident)
+      StableId_Id    (NList (Contextual Ident))
 
-    | StableId_Path  (Contextual Path)
-                     (Contextual Ident)
+    | StableId_This  (Maybe (Contextual Ident))
+                     (NList (Contextual Ident))
 
     | StableId_Super (Maybe (Contextual Ident))
                      (Maybe (Contextual ClassQualifier))
-                            (Contextual Ident)
+                     (NList (Contextual Ident))
   deriving (Eq, Ord, Show)
 
 newtype ClassQualifier = ClassQualifier Ident

@@ -192,7 +192,7 @@ symbol_literal :: { Contextual ByteString }:
     symbol_token                            { stringTokenValue <\$> $1 }
 
 --
--- identifiers
+-- simple identifiers
 --
 
 op :: { Contextual Ident }:
@@ -219,15 +219,18 @@ ids :: { Contextual Ids }:
     id                                      { PHead $1 :@@ between $1 $1 }
   | ids "," id                              { (value $1 ::: $3) :@@ between $1 $3 }
 
+--
+-- paths & stable identifiers
+--
 
 path :: { Contextual Path }:
     stable_id                               { Path_StableId $1 <\$ $1 }
   | id_prefix_opt "this"                    { $1 <?? (Path_This $1 <\$ $2) }
 
 stable_id :: { Contextual StableId }:
-    id stable_id_suffix_opt                                    { error "TODO" }
-  | id_prefix_opt "this" stable_id_suffix                      { error "TODO" }
-  | id_prefix_opt "super" class_qualifier_opt stable_id_suffix { error "TODO" }
+    id stable_id_suffix_opt                                    { (StableId_Id ($1 :| maybe [] (fromNList . value) $2) <\$ $1) ??> $2 }
+  | id_prefix_opt "this" stable_id_suffix                      { $1 <?? (StableId_This  $1    (value $3) :@@ between $2 $3) }
+  | id_prefix_opt "super" class_qualifier_opt stable_id_suffix { $1 <?? (StableId_Super $1 $3 (value $4) :@@ between $2 $4) }
 
 id_prefix_opt :: { Maybe (Contextual Ident) }:
     id_prefix                               { Just $1 }
@@ -236,12 +239,12 @@ id_prefix_opt :: { Maybe (Contextual Ident) }:
 id_prefix :: { Contextual Ident }:
     id "."                                  { value $1 :@@ between $1 $2 }
 
-stable_id_suffix_opt :: { Maybe (Contextual (QList (Contextual Ident))) }:
+stable_id_suffix_opt :: { Maybe (Contextual (NList (Contextual Ident))) }:
     stable_id_suffix                        { Just $1 }
   | {- empty -}                             { Nothing }
 
-stable_id_suffix :: { Contextual (QList (Contextual Ident)) }:
-    "." id stable_id_suffix_opt             { context $1 <@@ maybe (PHead $2 <\$ $2) (fmap (::: $2)) $3 }
+stable_id_suffix :: { Contextual (NList (Contextual Ident)) }:
+    "." id stable_id_suffix_opt             { context $1 <@@ maybe ($2 :| [] <\$ $2) (fmap ($2 <|)) $3 }
 
 class_qualifier_opt :: { Maybe (Contextual ClassQualifier) }:
     class_qualifier                         { Just $1 }

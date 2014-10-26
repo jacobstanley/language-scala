@@ -1,0 +1,55 @@
+# scrath-pad to help understand ambiguities in the scala grammar
+
+
+#
+# Paths & StableId's
+#
+
+path ::= stable-id
+       | [id "."] "this"
+
+stable-id ::= id
+            | path "." id
+            | [id "."] "super" [class-qualifier] "." id
+
+class-qualifier ::= "[" id "]"
+
+
+#
+# Paths & StableId's (path inlined)
+#
+
+path ::= stable-id
+       | [id "."] "this"
+
+stable-id ::= id
+            | stable-id "." id
+            | [id "."] "this" "." id
+            | [id "."] "super" [class-qualifier] "." id
+
+class-qualifier ::= "[" id "]"
+
+
+#
+# Remove ENBF syntax
+#
+
+
+# takeaway: path can refer anything that stable-id can refer to.
+#
+#           stable-id cannot refer to 'this' without an additional
+#           qualifier.
+
+path ::= stable-id
+       | id-prefix-opt "this"
+
+stable-id ::= id
+            | stable-id "." id
+            | id-prefix-opt "this" "." id
+            | id-prefix-opt "super" class-qualifier-opt "." id
+
+class-qualifier-opt ::= class-qualifier | # empty
+class-qualifier     ::= "[" id "]"
+
+id-prefix-opt ::= id-prefix | # empty
+id-prefix     ::= id "."
