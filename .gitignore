@@ -1,9 +1,7 @@
 .DS_Store
 .cabal-sandbox/
 cabal.sandbox.config
-dist
-*.hi
+dist/
 src/Language/Scala/Parser.hs
 src/Language/Scala/Parser.info
 src/Language/Scala/Scanner.hs
-
