@@ -367,7 +367,7 @@ ascription_opt :
 
 ascription :
     ":" infix_type                      { undefined }
-  | ":" annotations                     { undefined }
+  | ":" annotation annotations          { undefined }
   | ":" "_" "*"                         { undefined }
 
 --
@@ -405,8 +405,8 @@ expr1 :
   | "for" "{" enumerators "}" nls "yield" expr          { undefined }
   | "throw" expr                                        { undefined }
   | "return" expr_opt                                   { undefined }
-  | simple_expr_prefix_opt id "=" expr                  { undefined }
-  | simple_expr1 argument_exprs "=" expr                { undefined }
+  | simple_expr_prefix_opt id equals_expr               { undefined }
+  | simple_expr1 argument_exprs equals_expr             { undefined }
   | postfix_expr ascription_opt                         { undefined }
   | postfix_expr "match" "{" case_clauses "}"           { undefined }
 
@@ -430,6 +430,13 @@ finally_opt :
 
 finally :
     "finally" expr                      { undefined }
+
+equals_expr_opt :
+    equals_expr                         { undefined }
+  | {- empty -}
+
+equals_expr :
+    "=" expr                            { undefined }
 
 postfix_expr :
     infix_expr postfix_expr_id_opt      { undefined }
@@ -633,15 +640,11 @@ type_param :
             upper_bound_opt
             lower_bound_opt
             view_bounds
-            type_param_suffix           { undefined }
+            context_bounds              { undefined }
 
 id_wild :
     id                                  { undefined }
  | "_"                                  { undefined }
-
-type_param_suffix :
-    type_param_suffix ":" type          { undefined }
-  | {- empty -}                         { undefined }
 
 param_clauses :
     param_clause_many param_clauses_suffix_opt      { undefined }
@@ -684,9 +687,65 @@ param_type :
   | "=>" type                           { undefined }
   | type "*"                            { undefined }
 
+class_param_clauses :
+    class_param_clause_many
+    class_param_clauses_suffix_opt      { undefined }
+
+class_param_clause_many :
+    class_param_clause                              { undefined }
+  | class_param_clause_many class_param_clause      { undefined }
+
+class_param_clauses_suffix_opt :
+    class_param_clauses_suffix                      { undefined }
+  | {- empty -}                                     { undefined }
+
+class_param_clauses_suffix :
+    nl_opt "(" "implicit" class_params ")"          { undefined }
+
+class_param_clause :
+    nl_opt "(" class_params_opt ")"                 { undefined }
+
+class_params_opt :
+    class_params                                    { undefined }
+  | {- empty -}                                     { undefined }
+
+class_params :
+    class_param                                     { undefined }
+  | class_params "," class_param                    { undefined }
+
+class_param :
+    annotations class_param_prefix_opt
+    id ":" param_type equals_expr_opt               { undefined }
+
+class_param_prefix_opt :
+    class_param_prefix                              { undefined }
+  | {- empty -}                                     { undefined }
+
+class_param_prefix :
+    modifiers "val"                                 { undefined }
+  | modifiers "var"                                 { undefined }
+  | {- empty -}                                     { undefined }
+
+bindings :
+    "(" binding_many ")"                            { undefined }
+
+binding_many :
+    binding                                         { undefined }
+  | binding_many "," binding_many                   { undefined }
+
+binding :
+    id_wild has_type_opt                            { undefined }
+
 --
 -- type bounds
 --
+
+has_type_opt :
+    has_type                            { undefined }
+  | {- empty -}                         { undefined }
+
+has_type :
+    ":" type                            { undefined }
 
 lower_bound_opt :
     lower_bound                         { undefined }
@@ -709,6 +768,10 @@ view_bounds :
 view_bound :
     "<%" type                           { undefined }
 
+context_bounds :
+    context_bounds has_type             { undefined }
+  | {- empty -}                         { undefined }
+
 --
 -- declarations
 --
@@ -720,10 +783,10 @@ dcl :
   | "type" nls type_dcl                 { undefined }
 
 val_dcl :
-    ids ":" type                        { undefined }
+    ids has_type                        { undefined }
 
 var_dcl :
-    ids ":" type                        { undefined }
+    ids has_type                        { undefined }
 
 fun_dcl :
     fun_sig fun_dcl_suffix_opt          { undefined }
