@@ -31,6 +31,21 @@ class-qualifier ::= "[" id "]"
 
 
 #
+# Paths & StableId's (StableId inlined)
+#
+
+path ::= id
+       | path "." id
+       | [id "."] "super" [class-qualifier] "." id
+       | [id "."] "this"
+
+stable-id ::= id
+            | path "." id
+            | [id "."] "super" [class-qualifier] "." id
+
+class-qualifier ::= "[" id "]"
+
+#
 # Remove ENBF syntax
 #
 

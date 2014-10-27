@@ -129,18 +129,18 @@ semi_opt :: { Maybe (Contextual ()) }:
   | {- empty -}                             { Nothing }
 
 semi :: { Contextual () }:
-    ";"                                     { pure () <\$ $1 }
-  | nl_token                                { pure () <\$ $1 }
-  | nls_token                               { pure () <\$ $1 }
+    ";"                                     { () <\$ $1 }
+  | nl_token                                { () <\$ $1 }
+  | nls_token                               { () <\$ $1 }
 
 nl_opt :: { Maybe (Contextual ()) }:
-    nl_token                                { Just (pure () <\$ $1) }
-  | {- empty -}                             { Nothing               }
+    nl_token                                { Just (() <\$ $1) }
+  | {- empty -}                             { Nothing          }
 
 nls :: { Maybe (Contextual ()) }:
-    nl_token                                { Just (pure () <\$ $1) }
-  | nls_token                               { Just (pure () <\$ $1) }
-  | {- empty -}                             { Nothing               }
+    nl_token                                { Just (() <\$ $1) }
+  | nls_token                               { Just (() <\$ $1) }
+  | {- empty -}                             { Nothing          }
 
 --
 -- literals
@@ -155,7 +155,7 @@ literal :: { Contextual Literal }:
   | character_literal                       { Lit_Character        <\$> $1 }
   | string_literal                          { Lit_String           <\$> $1 }
   | symbol_literal                          { Lit_Symbol           <\$> $1 }
-  | "null"                                  { Lit_Null :@@ context $1      }
+  | "null"                                  { Lit_Null             <\$  $1 }
 
 --
 -- integer literals
@@ -255,35 +255,35 @@ id_this :
 -- paths & stable identifiers
 --
 
-path :: { Contextual Path }:
-    stable_id                               { Path_StableId $1 <\$ $1 }
-  | id_prefix_opt "this"                    { $1 <?? (Path_This $1 <\$ $2) }
+path :
+    stable_id                               { undefined }
+  | id_prefix_opt "this"                    { undefined }
 
-stable_id :: { Contextual StableId }:
-    id stable_id_suffix_opt                                    { (StableId_Id ($1 :| maybe [] (fromNList . value) $2) <\$ $1) ??> $2 }
-  | id_prefix_opt "this" stable_id_suffix                      { $1 <?? (StableId_This  $1    (value $3) :@@ between $2 $3) }
-  | id_prefix_opt "super" class_qualifier_opt stable_id_suffix { $1 <?? (StableId_Super $1 $3 (value $4) :@@ between $2 $4) }
+stable_id :
+    id stable_id_suffix_opt                                    { undefined }
+  | id_prefix_opt "this" stable_id_suffix                      { undefined }
+  | id_prefix_opt "super" class_qualifier_opt stable_id_suffix { undefined }
 
-id_prefix_opt :: { Maybe (Contextual Ident) }:
-    id_prefix                               { Just $1 }
-  | {- empty -}                             { Nothing }
+id_prefix_opt :
+    id_prefix                               { undefined }
+  | {- empty -}                             { undefined }
 
-id_prefix :: { Contextual Ident }:
-    id "."                                  { value $1 :@@ between $1 $2 }
+id_prefix :
+    id "."                                  { undefined }
 
-stable_id_suffix_opt :: { Maybe (Contextual (NList (Contextual Ident))) }:
-    stable_id_suffix                        { Just $1 }
-  | {- empty -}                             { Nothing }
+stable_id_suffix_opt :
+    stable_id_suffix                        { undefined }
+  | {- empty -}                             { undefined }
 
-stable_id_suffix :: { Contextual (NList (Contextual Ident)) }:
-    "." id stable_id_suffix_opt             { context $1 <@@ maybe ($2 :| [] <\$ $2) (fmap ($2 <|)) $3 }
+stable_id_suffix :
+    "." id stable_id_suffix_opt             { undefined }
 
-class_qualifier_opt :: { Maybe (Contextual ClassQualifier) }:
-    class_qualifier                         { Just $1 }
-  | {- empty -}                             { Nothing }
+class_qualifier_opt :
+    class_qualifier                         { undefined }
+  | {- empty -}                             { undefined }
 
-class_qualifier :: { Contextual ClassQualifier }:
-    "[" id "]"                              { ClassQualifier <\$> $2 }
+class_qualifier :
+    "[" id "]"                              { undefined }
 
 --
 -- type identifiers
