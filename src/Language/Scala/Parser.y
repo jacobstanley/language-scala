@@ -243,6 +243,14 @@ ids :: { Contextual Ids }:
     id                                      { PHead $1 :@@ between $1 $1 }
   | ids "," id                              { (value $1 ::: $3) :@@ between $1 $3 }
 
+id_wild :
+    id                                      { undefined }
+ | "_"                                      { undefined }
+
+id_this :
+    id                                      { undefined }
+ | "this"                                   { undefined }
+
 --
 -- paths & stable identifiers
 --
@@ -433,7 +441,7 @@ finally :
 
 equals_expr_opt :
     equals_expr                         { undefined }
-  | {- empty -}
+  | {- empty -}                         { undefined }
 
 equals_expr :
     "=" expr                            { undefined }
@@ -481,6 +489,10 @@ simple_expr1 :
   | simple_expr type_args               { undefined }
   | simple_expr1 argument_exprs         { undefined }
 
+argument_exprs_many :
+    argument_exprs_many argument_exprs  { undefined }
+  | {- empty -}                         { undefined }
+
 argument_exprs :
     "(" exprs_opt ")"                                   { undefined }
   | "(" exprs_comma_opt postfix_expr ":" "_" "*" ")"    { undefined }
@@ -505,12 +517,17 @@ block_stat :
     "import"                                    { undefined }
   | annotations "implicit" def                  { undefined }
   | annotations "lazy"     def                  { undefined }
-  | annotations local_modifier_opt tmpl_def     { undefined }
+  | annotations local_modifiers tmpl_def        { undefined }
   | expr1                                       { undefined }
+  | {- empty -}                                 { undefined }
 
 --
 -- patterns
 --
+
+result_expr_opt :
+    result_expr                         { undefined }
+  | {- empty -}                         { undefined }
 
 result_expr :
     expr1                                          { undefined }
@@ -573,7 +590,11 @@ at_pattern3 :
 
 pattern3 :
     simple_pattern                      { undefined }
-  | pattern3 id nl_opt simple_pattern   { undefined }
+  | pattern3 pattern3_suffix            { undefined }
+
+pattern3_suffix :
+    pattern3_suffix id nl_opt simple_pattern    { undefined }
+  | {- empty -}                                 { undefined }
 
 simple_pattern :
     "_"                                                         { undefined }
@@ -642,23 +663,51 @@ type_param :
             view_bounds
             context_bounds              { undefined }
 
-id_wild :
-    id                                  { undefined }
- | "_"                                  { undefined }
+has_type_opt :
+    has_type                            { undefined }
+  | {- empty -}                         { undefined }
+
+has_type :
+    ":" type                            { undefined }
+
+lower_bound_opt :
+    lower_bound                         { undefined }
+  | {- empty -}                         { undefined }
+
+lower_bound :
+    ">:" type                           { undefined }
+
+upper_bound_opt :
+    upper_bound                         { undefined }
+  | {- empty -}                         { undefined }
+
+upper_bound :
+    "<:" type                           { undefined }
+
+view_bounds :
+    view_bounds view_bound              { undefined }
+  | {- empty -}                         { undefined }
+
+view_bound :
+    "<%" type                           { undefined }
+
+context_bounds :
+    context_bounds has_type             { undefined }
+  | {- empty -}                         { undefined }
 
 param_clauses :
     param_clause_many param_clauses_suffix_opt      { undefined }
 
 param_clauses_suffix_opt :
-    param_clause_suffix                 { undefined }
+    param_clauses_suffix                { undefined }
   | {- empty -}                         { undefined }
 
 param_clauses_suffix :
     nl_opt "(" "implicit" params ")"    { undefined }
 
 param_clause_many :
-    param_clause                        { undefined }
-  | param_clause_many param_clause      { undefined }
+    param_clause_many param_clause      { undefined }
+  | {- empty -}                         { undefined }
 
 param_clause :
     nl_opt "(" params_opt ")"           { undefined }
@@ -692,8 +741,8 @@ class_param_clauses :
     class_param_clauses_suffix_opt      { undefined }
 
 class_param_clause_many :
-    class_param_clause                              { undefined }
-  | class_param_clause_many class_param_clause      { undefined }
+    class_param_clause_many class_param_clause      { undefined }
+  | {- empty -}                                     { undefined }
 
 class_param_clauses_suffix_opt :
     class_param_clauses_suffix                      { undefined }
@@ -737,40 +786,143 @@ binding :
     id_wild has_type_opt                            { undefined }
 
 --
--- type bounds
+-- modifiers
 --
 
-has_type_opt :
-    has_type                            { undefined }
+modifiers :
+    modifiers modifier                  { undefined }
   | {- empty -}                         { undefined }
 
-has_type :
-    ":" type                            { undefined }
+modifier :
+    local_modifier                      { undefined }
+  | access_modifier                     { undefined }
+  | "override"                          { undefined }
 
-lower_bound_opt :
-    lower_bound                         { undefined }
+local_modifiers :
+    local_modifiers local_modifier      { undefined }
   | {- empty -}                         { undefined }
 
-lower_bound :
-    ">:" type                           { undefined }
+local_modifier :
+    "abstract"                          { undefined }
+  | "final"                             { undefined }
+  | "sealed"                            { undefined }
+  | "implicit"                          { undefined }
+  | "lazy"                              { undefined }
 
-upper_bound_opt :
-    upper_bound                         { undefined }
+access_modifier_opt :
+    access_modifier                     { undefined }
   | {- empty -}                         { undefined }
 
-upper_bound :
-    "<:" type                           { undefined }
+access_modifier :
+    "private"   access_qualifier_opt    { undefined }
+  | "protected" access_qualifier_opt    { undefined }
 
-view_bounds :
-    view_bound                          { undefined }
-  | view_bounds view_bound              { undefined }
-
-view_bound :
-    "<%" type                           { undefined }
-
-context_bounds :
-    context_bounds has_type             { undefined }
+access_qualifier_opt :
+    access_qualifier                    { undefined }
   | {- empty -}                         { undefined }
+
+access_qualifier :
+    "[" id_this "]"                     { undefined }
+
+--
+-- annotations
+--
+
+annotations :
+    annotations annotation                  { undefined }
+  | {- empty -}                             { undefined }
+
+constr_annotations :
+    constr_annotations constr_annotation    { undefined }
+  | {- empty -}                             { undefined }
+
+annotation :
+    "@" simple_type argument_exprs_many     { undefined }
+
+constr_annotation :
+    "@" simple_type argument_exprs          { undefined }
+
+name_value_pair :
+    "val" id "=" prefix_expr                { undefined }
+
+--
+-- templates
+--
+
+template_body_opt :
+    template_body                                   { undefined }
+  | {- empty -}                                     { undefined }
+
+template_body :
+    nl_opt "{" self_type_opt template_stats "}"     { undefined }
+
+template_stats :
+    template_stat                                   { undefined }
+  | template_stats semi template_stat               { undefined }
+
+template_stat :
+    import                                          { undefined }
+  | annotation_nls modifiers def                    { undefined }
+  | annotation_nls modifiers dcl                    { undefined }
+  | expr                                            { undefined }
+  | {- empty -}                                     { undefined }
+
+annotation_nls :
+    annotation_nls annotation_nl                    { undefined }
+  | {- empty -}                                     { undefined }
+
+annotation_nl :
+    annotation nl_opt                               { undefined }
+
+self_type_opt :
+    self_type                                       { undefined }
+  | {- empty -}                                     { undefined }
+
+self_type :
+    id has_type_opt "=>"                            { undefined }
+  | "this" ":" type "=>"                            { undefined }
+
+--
+-- imports
+--
+
+import :
+    "import" import_exprs                           { undefined }
+
+import_exprs :
+    import_expr                                     { undefined }
+  | import_exprs "," import_expr                    { undefined }
+
+import_expr :
+    stable_id "." id_wild_selectors                 { undefined }
+
+id_wild_selectors :
+    id_wild                                         { undefined }
+  | import_selectors                                { undefined }
+
+import_selectors :
+    "{" import_selector_commas import_selector_wild "}"     { undefined }
+
+import_selector_commas :
+    import_selector_commas import_selector_comma            { undefined }
+  | {- empty -}                                             { undefined }
+
+import_selector_comma :
+    import_selector ","                             { undefined }
+
+import_selector_wild :
+    import_selector                                 { undefined }
+  | "_"                                             { undefined }
+
+import_selector :
+    id rename_id_wild_opt                           { undefined }
+
+rename_id_wild_opt :
+    rename_id_wild                                  { undefined }
+  | {- empty -}                                     { undefined }
+
+rename_id_wild :
+    "=>" id_wild                                    { undefined }
 
 --
 -- declarations
@@ -789,20 +941,171 @@ var_dcl :
     ids has_type                        { undefined }
 
 fun_dcl :
-    fun_sig fun_dcl_suffix_opt          { undefined }
+    fun_sig has_type_opt                { undefined }
 
 fun_sig :
-    id fun_type_param_clause_opt param_clauses { undefined }
+    id fun_type_param_clause_opt param_clauses                  { undefined }
 
 type_dcl :
-    id type_param_clause_opt upper_bound_opt lower_bound_opt { undefined }
+    id type_param_clause_opt upper_bound_opt lower_bound_opt    { undefined }
+
+--
+-- definitions
+--
+
+pat_var_def :
+    "val" pat_def                       { undefined }
+  | "var" var_def                       { undefined }
+
+def :
+    pat_var_def                         { undefined }
+  | "def" fun_def                       { undefined }
+  | "type" nls type_def                 { undefined }
+  | tmpl_def                            { undefined }
+
+pat_def :
+    pat_def_prefix has_type_opt equals_expr     { undefined }
+
+pat_def_prefix :
+    pattern2                            { undefined }
+  | pat_def_prefix "," pattern2         { undefined }
+
+var_def :
+    pat_def                             { undefined }
+  | ids has_type "=" "_"                { undefined }
+
+fun_def :
+    fun_sig has_type_opt equals_expr                    { undefined }
+  | fun_sig nl_opt "{" block "}"                        { undefined }
+  | "this" param_clause param_clauses fun_def_suffix    { undefined }
+
+fun_def_suffix :
+    "=" constr_expr                     { undefined }
+  | nl_opt constr_block                 { undefined }
+
+type_def :
+    id type_param_clause_opt "=" type   { undefined }
+
+tmpl_def :
+           "class"  class_def           { undefined }
+  | "case" "class"  class_def           { undefined }
+  |        "object" object_def          { undefined }
+  | "case" "object" object_def          { undefined }
+  |        "trait"  trait_def           { undefined }
+
+class_def :
+    id type_param_clause_opt
+       constr_annotations
+       access_modifier_opt
+       class_param_clauses
+       class_template_opt               { undefined }
+
+trait_def :
+    id type_param_clause_opt
+       trait_template_opt               { undefined }
+
+object_def :
+    id class_template_opt               { undefined }
+
+extends_opt :
+    "extends"                           { undefined }
+  | {- empty -}                         { undefined }
+
+class_template_opt :
+    "extends" class_template            { undefined }
+  | extends_opt template_body           { undefined }
+  | {- empty -}                         { undefined }
+
+trait_template_opt :
+    "extends" trait_template            { undefined }
+  | extends_opt template_body           { undefined }
+  | {- empty -}                         { undefined }
+
+class_template :
+    early_defs_opt class_parents template_body_opt      { undefined }
+
+trait_template :
+    early_defs_opt trait_parents template_body_opt      { undefined }
+
+class_parents :
+    constr with_annot_types             { undefined }
+
+trait_parents :
+    annot_type with_annot_types         { undefined }
+
+with_annot_types :
+    with_annot_types "with" annot_type  { undefined }
+  | {- empty -}                         { undefined }
+
+constr :
+    annot_type argument_exprs_many      { undefined }
+
+early_defs_opt :
+    early_defs                          { undefined }
+  | {- empty -}                         { undefined }
+
+early_defs :
+    "{" early_def_many_opt "}" "with"       { undefined }
+
+early_def_many_opt :
+    early_def_many                          { undefined }
+  | {- empty -}                             { undefined }
+
+early_def_many :
+    early_def                               { undefined }
+  | early_def_many semi early_def           { undefined }
+
+early_def :
+    annotation_nls modifiers pat_var_def    { undefined }
+
+--
+-- constructors
+--
+
+constr_expr :
+    self_invocation                             { undefined }
+  | constr_block                                { undefined }
+
+constr_block :
+    "{" self_invocation semi_block_stats "}"    { undefined }
+
+semi_block_stats :
+    semi_block_stats semi block_stat            { undefined }
+  | {- empty -}                                 { undefined }
+
+self_invocation :
+    "this" argument_exprs argument_exprs_many   { undefined }
 
 --
 -- top level
 --
 
-compilation_unit :: { Contextual Path }:
-    path { $1 }
+top_stat_seq :
+    top_stat                                    { undefined }
+  | top_stat_seq semi top_stat                  { undefined }
+
+top_stat :
+    annotation_nls modifiers tmpl_def           { undefined }
+  | import                                      { undefined }
+  | packaging                                   { undefined }
+  | package_object                              { undefined }
+  | {- empty -}                                 { undefined }
+
+packaging :
+    "package" qual_id nl_opt "{" top_stat_seq "}"   { undefined }
+
+package_object :
+    "package" "object" object_def               { undefined }
+
+package_stat :
+    "package" qual_id semi                      { undefined }
+
+package_stats :
+    package_stats package_stat                  { undefined }
+  | {- empty -}                                 { undefined }
+
+compilation_unit :
+    package_stats top_stat_seq                  { undefined }
 
 {
 
